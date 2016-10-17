@@ -18,6 +18,7 @@ ENV_VARS = {
     'AWS_DYNAMODB_TABLE': 'export-service',
     'AWS_S3_KEY_BUCKET': '',
     'AWS_S3_RSA_KEY': '',
+    #
     'JANRAIN_URI': '',
     'JANRAIN_CLIENT_ID': '',
     'JANRAIN_CLIENT_SECRET': '',
@@ -25,9 +26,11 @@ ENV_VARS = {
     'JANRAIN_ATTRIBUTES': '',
     'JANRAIN_QUERY': '',
     'JANRAIN_FULL_EXPORT': False,
-    'MC_API_USER': '',
+    'MC_URI_TEMPLATE':'https://{data_center}.api.mailchimp.com/3.0',
+    'MC_API_USERNAME': '',
+    # tell eric we had to use the key for mailchimp
     'MC_API_KEY': '',
-    'MC_LIST_IDS': '',
+    'MC_LIST_ID': '',
     'MC_MAX_RETRIES': 3,
     'MC_RETRY_TIMEOUT': 1,
     'MC_CALL_TIMEOUT': 1,
