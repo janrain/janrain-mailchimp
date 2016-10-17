@@ -8,8 +8,10 @@ import logging
 
 def sync():
     config = flask.current_app.config.copy()
-    logger = logging.getLogger(config['LOGGER_NAME'])
-    pass
+    # logger = logging.getLogger(config['LOGGER_NAME'])
+    print( config)
+    return "IM at SYNC"
+
 
 def init_sync(config,logger):
     ### need to update this list
@@ -116,47 +118,47 @@ def init_janrain(sync_info, config, logger):
         return log_and_return_warning(message, logger)
 
     capture_app = janrain_datalib.get_app(janrain_uri, janrain_client_id, janrain_client_secret)
-    sync_info['capture_app'] = capture_app
-    # should I check for existence (default is user)?
-
-    #### need to set the properties for how many users to get at a time
-    sync_info['capture_schema'] = capture_app.get_schema('user')
-
-
-    #### need to setup the mappings
-    #### 'MC_FIELDS_TO_EXPORT' in config should tell us which fields need to be mapped
-    #### may have some fields that are always mapped such as email
-    """we will always sync email so create dictionary if not configured
-        all attributes are optional but we will fail if the mapping is configured poorly
-    """
-    janrain_attribute_map = eval_mapping(config['JANRAIN_MC_ATTRIBUTE_MAPPING'],
-                                         'JANRAIN_MC_ATTRIBUTE_MAPPING', logger)
-    janrain_attribute_map.pop('email', None)
-    janrain_attribute_map['email'] = 'email_addresses'
-    sync_info['janrain_attribute_map'] = janrain_attribute_map
-
-    """grab list of attributes from map for janrain filtering"""
-    janrain_attributes = []
-    janrain_attributes += list(janrain_attribute_map.keys())
-
-    ### need to update thse fields for the current app. They are referring to the constant contact
-    """custom fields are optional but we will fail if the mapping is configured poorly"""
-    custom_field_map = eval_mapping(config['JANRAIN_MC_CUSTOM_FIELD_MAPPING'],
-                                    'JANRAIN_MC_CUSTOM_FIELD_MAPPING', logger)
-    if custom_field_map:
-        janrain_attributes += list(custom_field_map.keys())
-    sync_info['custom_field_map'] = custom_field_map
-
-    """uuid must be added to list of attributes"""
-    try:
-        janrain_attributes.remove('uuid')
-    except ValueError:
-        pass
-    janrain_attributes.append('uuid')
-
-    sync_info['janrain_attributes'] = janrain_attributes
-
-    logger.debug("janrain complete")
+    # sync_info['capture_app'] = capture_app
+    # # should I check for existence (default is user)?
+    #
+    # #### need to set the properties for how many users to get at a time
+    # sync_info['capture_schema'] = capture_app.get_schema('user')
+    #
+    #
+    # #### need to setup the mappings
+    # #### 'MC_FIELDS_TO_EXPORT' in config should tell us which fields need to be mapped
+    # #### may have some fields that are always mapped such as email
+    # """we will always sync email so create dictionary if not configured
+    #     all attributes are optional but we will fail if the mapping is configured poorly
+    # """
+    # janrain_attribute_map = eval_mapping(config['JANRAIN_MC_ATTRIBUTE_MAPPING'],
+    #                                      'JANRAIN_MC_ATTRIBUTE_MAPPING', logger)
+    # janrain_attribute_map.pop('email', None)
+    # janrain_attribute_map['email'] = 'email_addresses'
+    # sync_info['janrain_attribute_map'] = janrain_attribute_map
+    #
+    # """grab list of attributes from map for janrain filtering"""
+    # janrain_attributes = []
+    # janrain_attributes += list(janrain_attribute_map.keys())
+    #
+    # ### need to update thse fields for the current app. They are referring to the constant contact
+    # """custom fields are optional but we will fail if the mapping is configured poorly"""
+    # custom_field_map = eval_mapping(config['JANRAIN_MC_CUSTOM_FIELD_MAPPING'],
+    #                                 'JANRAIN_MC_CUSTOM_FIELD_MAPPING', logger)
+    # if custom_field_map:
+    #     janrain_attributes += list(custom_field_map.keys())
+    # sync_info['custom_field_map'] = custom_field_map
+    #
+    # """uuid must be added to list of attributes"""
+    # try:
+    #     janrain_attributes.remove('uuid')
+    # except ValueError:
+    #     pass
+    # janrain_attributes.append('uuid')
+    #
+    # sync_info['janrain_attributes'] = janrain_attributes
+    #
+    # logger.debug("janrain complete")
     return True
 
 
@@ -201,7 +203,7 @@ def load_records(sync_info,config,logger):
 
     #need to get each record and add it to a list which we can return
     records = []
-    capture_app = janrain_datalib.get_app(janrain_uri, janrain_client_id, janrain_client_secret)
+    #capture_app = janrain_datalib.get_app(janrain_uri, janrain_client_id, janrain_client_secret)
     for record_num, record in enumerate(capture_app.get_schema('user').records.iterator(**kwargs), start=1):
         logger.debug("fetched record: %d", record_num)
         # logger.info(record)
