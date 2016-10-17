@@ -1,4 +1,3 @@
-import json
 import unittest
 from unittest.mock import MagicMock
 from janrain_mailchimp_connect.actions.sync import *

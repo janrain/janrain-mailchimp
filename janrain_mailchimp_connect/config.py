@@ -1,6 +1,7 @@
 """Application configuration"""
 import boto3
 import os
+import json
 
 # environment variables and their defaults if not defined
 ENV_VARS = {
@@ -20,8 +21,6 @@ ENV_VARS = {
     'JANRAIN_CLIENT_SECRET': '',
     'JANRAIN_BATCH_SIZE': 1000,
     'JANRAIN_ATTRIBUTES': '',
-    'JANRAIN_MC_ATTRIBUTE_MAPPING': '',
-    'JANRAIN_MC_CUSTOM_FIELD_MAPPING': '',
     'JANRAIN_QUERY': '',
     'JANRAIN_FULL_EXPORT': False,
     'MC_API_USER': '',
@@ -52,6 +51,12 @@ def get_config():
                 value = int(value)
             except ValueError:
                 value = default_value
+        elif isinstance(ENV_VARS[key], list):
+            try:
+                value = json.loads(value)
+            except ValueError:
+                value = default_value
+
         config[key] = value
 
     # grab keys from s3

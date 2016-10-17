@@ -1,5 +1,6 @@
 import datetime
 import flask
+import hashlib
 import janrain_datalib
 import json
 import logging
@@ -8,9 +9,6 @@ import logging
 def sync():
     config = flask.current_app.config.copy()
     logger = logging.getLogger(config['LOGGER_NAME'])
-    pass
-
-def init_sync(config, logger):
     pass
 
 def init_sync(config,logger):
@@ -34,35 +32,44 @@ def init_sync(config,logger):
     """
     sync_info = {}
 
-    if not init_janrain(sync_info, config, logger):
-        return None
+    #1. validate config
+    #      If we have a list, we need to add email if it doesnt exist
+    #       if mapping, verify that there is an email mapping
 
-    if not init_mc(sync_info, config, logger):
-        return None
 
-    """check for info from last run. if there is a run in progress still aborting
-    if there is no info to be found set the lock and set last_run_time to now - 15minutes
-    """
-    job_table = sync_info['job_table']
-    response = job_table.get_item(Key={'job_id':'sync_job'})
-    try:
-        job = response['Item']
-        if job['running']:
-            logger.warning("aborting: sync is already in process")
-            return None
-        last_run = job['run_start']
-        job_table.update_item(Key={'job_id':'sync_job'},
-                            UpdateExpression='SET running = :val1, run_start = :val2',
-                            ExpressionAttributeValues=
-                                {':val1': True, ':val2': datetime.datetime.utcnow().__str__()})
-    except KeyError:
-        job_table.put_item(Item={'job_id':'sync_job','running':True,
-                                                'run_start': datetime.datetime.utcnow().__str__()})
-        last_run = (datetime.datetime.utcnow() - datetime.timedelta(hours=get_int(config['APP_DEFAULT_UPDATE_DELTA_HOURS']))).__str__()
-        pass
-    sync_info['job_table'] = job_table
-    sync_info['last_run'] = last_run
-    return sync_info
+    #2. quary capture for records
+
+    #3. send to mailchimp
+
+    # if not init_janrain(sync_info, config, logger):
+    #     return None
+    #
+    # if not init_mc(sync_info, config, logger):
+    #     return None
+    #
+    # """check for info from last run. if there is a run in progress still aborting
+    # if there is no info to be found set the lock and set last_run_time to now - 15minutes
+    # """
+    # job_table = sync_info['job_table']
+    # response = job_table.get_item(Key={'job_id':'sync_job'})
+    # try:
+    #     job = response['Item']
+    #     if job['running']:
+    #         logger.warning("aborting: sync is already in process")
+    #         return None
+    #     last_run = job['run_start']
+    #     job_table.update_item(Key={'job_id':'sync_job'},
+    #                         UpdateExpression='SET running = :val1, run_start = :val2',
+    #                         ExpressionAttributeValues=
+    #                             {':val1': True, ':val2': datetime.datetime.utcnow().__str__()})
+    # except KeyError:
+    #     job_table.put_item(Item={'job_id':'sync_job','running':True,
+    #                                             'run_start': datetime.datetime.utcnow().__str__()})
+    #     last_run = (datetime.datetime.utcnow() - datetime.timedelta(hours=get_int(config['APP_DEFAULT_UPDATE_DELTA_HOURS']))).__str__()
+    #     pass
+    # sync_info['job_table'] = job_table
+    # sync_info['last_run'] = last_run
+    # return sync_info
 
 def init_mc(sync_info,config,logger):
     logger.debug ("intializing mailchimp connect")
@@ -152,21 +159,6 @@ def init_janrain(sync_info, config, logger):
     logger.debug("janrain complete")
     return True
 
-def eval_mapping(mapping_string,attribute_name,logger):
-    """eval mapping environment variables and make sure they produce dictionaries"""
-    if mapping_string:
-        mapping = {}
-        try:
-            mapping = eval(mapping_string)
-        except SyntaxError:
-            logger.warning("aborting: unable to parse mapping: " + attribute_name)
-            return None
-        if not type(mapping) is dict:
-            logger.warning("aborting: parsing mapping did not produce a dictionary: " + attribute_name)
-            return None
-        return mapping
-    else:
-        return {}
 
 
 ############ Shouldnt need, should be able to just filter out what we need
@@ -193,6 +185,7 @@ def json_converter (json_data, config):
     return user_list
 ############
 
+#step 2
 def load_records(sync_info,config,logger):
     ### for this we probably dont need to use sqs, we can just return a list of the records
     """grab records from capture and put them in sqs"""
@@ -200,21 +193,25 @@ def load_records(sync_info,config,logger):
     kwargs = {
         'batch_size': batch_size,
         'attributes': sync_info['janrain_attributes'],
+        'filter': record_filter(sync_info,logger),
     }
-    rf = record_filter(sync_info,logger)
-    if rf:
-        kwargs['filtering'] = rf
 
     records_count = 0
     logger.info("starting export from capture with batch size %s...", batch_size)
 
-    for record_num, record in enumerate(sync_info['capture_schema'].records.iterator(**kwargs), start=1):
+    #need to get each record and add it to a list which we can return
+    records = []
+    capture_app = janrain_datalib.get_app(janrain_uri, janrain_client_id, janrain_client_secret)
+    for record_num, record in enumerate(capture_app.get_schema('user').records.iterator(**kwargs), start=1):
         logger.debug("fetched record: %d", record_num)
         # logger.info(record)
         logger.info("sent to queue: " + record['uuid'])
-        sync_info['queue'].send_message(MessageBody=json.dumps(record))
+        aRecord = json.dumps(record)
+        records.append(aRecord)
+        #sync_info['queue'].send_message(MessageBody=json.dumps(record))
         records_count += 1
     logger.info("total records fetched: %d", records_count)
+    return records
 
 def log_and_return_warning(message,logger):
     logger.warning(message)
@@ -255,9 +252,14 @@ def build_batch(sync_info, config, logger, records):
     :param sync_info:
     :param config:
     :param logger:
-    :param records:
-    :return:
+    :param records: the list of records to convert
+    :return: json formated code for the mailchimp put
     """
+    output = '{ "operatons": ['
+    for record in records:
+        hash_name = hashlib.md5(record['email'])
+
+
 
 def post_to_mailchimp(sync_info, logger, batch):
     """make the post call to mailchimp with the batch, mailchimp will return a batch id which we can use to check
