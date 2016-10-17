@@ -5,7 +5,9 @@ import json
 
 # environment variables and their defaults if not defined
 ENV_VARS = {
-    'DEBUG': False,
+    # change true to false before commit
+    'DEBUG': True,
+    'LOGGER_NAME': 'janrain_mailchimp',
     'APP_LOG_FILE': '/opt/python/log/application.log',
     'APP_LOG_FILESIZE': 10000000,
     'APP_LOG_NUM_BACKUPS': 20,

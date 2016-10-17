@@ -1,16 +1,16 @@
 import datetime
 import flask
 import hashlib
-import janrain_datalib
+# import janrain_datalib
 import json
 import logging
 
 
 def sync():
     config = flask.current_app.config.copy()
-    # logger = logging.getLogger(config['LOGGER_NAME'])
-    print( config)
-    return "IM at SYNC"
+    logger = logging.getLogger(config['LOGGER_NAME'])
+    logger.error("Testing log")
+    return "IM at SYNC 4"
 
 
 def init_sync(config,logger):
