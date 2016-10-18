@@ -605,5 +605,5 @@ class TestMyMethods(unittest.TestCase) :
                   'JANRAIN_BATCH_SIZE':'100',
                   }
         #call
-        result = load_records(sync_info, config, logger)
+        result = capture_batch_generator(sync_info, config, logger)
         #test

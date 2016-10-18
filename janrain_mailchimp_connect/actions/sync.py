@@ -5,6 +5,7 @@ import janrain_datalib
 import json
 import logging
 import requests
+import time
 from urllib.parse import urljoin
 from datetime import datetime
 
@@ -12,17 +13,31 @@ from datetime import datetime
 def sync():
     config = flask.current_app.config.copy()
     logger = logging.getLogger(config['LOGGER_NAME'])
-    records = load_records(config,logger)
-    mc_records = mailchimp_build_batch(config,records)
-   # print(mc_records)
-    send_to_mailchimp(config, logger, records)
+    total_batch_num = 0
+    for capture_batch in capture_batch_generator(config, logger):
+        mailchimp_batch = send_batch_to_mailchimp(config, logger, capture_batch)
+        logger.info("batch:{} started".format(mailchimp_batch['id']))
+        while not isMailchimpBatchFinished(config, mailchimp_batch):
+            logger.info("batch:{} not complete".format(mailchimp_batch['id']))
+            time.sleep(2)
+        logger.info("batch:{} complete".format(mailchimp_batch['id']))
+        total_batch_num += 1
+        if total_batch_num == 2:
+            break
+
     return "IM at SYNC 4"
 
+def isMailchimpBatchFinished(config, mailchimp_batch):
+    endpoint = mailchimp_endpoint(config, "/batches/{}".format(mailchimp_batch.get('id')))
+    result = requests.get(endpoint, auth=(config['MC_API_USERNAME'], config['MC_API_KEY']))
+    return result.json()['status'] == 'finished'
+
+
 #step 2
-def load_records(config,logger):
+def capture_batch_generator(config, logger):
     ### for this we probably dont need to use sqs, we can just return a list of the records
     """grab records from capture and put them in sqs"""
-    batch_size = get_int(config['JANRAIN_BATCH_SIZE'])
+    batch_size = config['JANRAIN_BATCH_SIZE']
     kwargs = {
         'batch_size': batch_size,
         'attributes': ['email', 'uuid'],
@@ -32,18 +47,21 @@ def load_records(config,logger):
     logger.info("starting export from capture with batch size %s...", batch_size)
 
     # need to get each record and add it to a list which we can return
-    records = []
+    batch = []
+    total_record_num = 0
     capture_app = janrain_datalib.get_app(config['JANRAIN_URI'], config['JANRAIN_CLIENT_ID'], config['JANRAIN_CLIENT_SECRET'])
     for record_num, record in enumerate(capture_app.get_schema('user').records.iterator(**kwargs), start=1):
         logger.info("fetched record: %d", record_num)
-        records.append(record)
-        if len(records) > 10:
-            break
-    logger.info("total records fetched: %d", len(records))
-    return records
+        batch.append(record)
+        if len(batch) == config['JANRAIN_BATCH_SIZE']:
+            yield batch
+            batch = []
+    if len(batch):
+        yield batch
+
+    logger.info("total records fetched: %d", total_record_num)
 
 def mailchimp_build_batch_operation(config, record, ):
-    print(record)
     email_md5 = hashlib.md5(record['email'].encode()).hexdigest()
     return {
         "method": "PUT",
@@ -56,10 +74,14 @@ def mailchimp_build_batch_operation(config, record, ):
 
 def mailchimp_build_batch(config, records):
     return {
-       "operations": [mailchimp_build_batch_operation(config, record) for record in records],
+       "operations": [
+           mailchimp_build_batch_operation(config, record)
+           for record in records
+           if record.get('email')
+        ],
     }
 
-def send_to_mailchimp(config, logger, records):
+def send_batch_to_mailchimp(config, logger, records):
     """make the post call to mailchimp with the batch, mailchimp will return a batch id which we can use to check
     the status
 
@@ -68,12 +90,11 @@ def send_to_mailchimp(config, logger, records):
     """
     #conver the records into operations
     batch = mailchimp_build_batch(config, records)
+    #print(batch)
     #make the endpoint
     endpoint = mailchimp_endpoint(config, "/batches")
-    print(batch)
     result = requests.post(endpoint, auth=(config['MC_API_USERNAME'], config['MC_API_KEY']), json=batch)
-
-    print(result.text)
+    return result.json()
 
 def mailchimp_endpoint(config, path=None):
     data_center= config['MC_API_KEY'].split('-')[-1]
