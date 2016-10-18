@@ -26,7 +26,7 @@ ENV_VARS = {
     'JANRAIN_ATTRIBUTES': '',
     'JANRAIN_QUERY': '',
     'JANRAIN_FULL_EXPORT': False,
-    'MC_URI_TEMPLATE':'https://{data_center}.api.mailchimp.com/3.0',
+    'MC_URI_TEMPLATE':'https://{data_center}.api.mailchimp.com/3.0/',
     'MC_API_USERNAME': '',
     # tell eric we had to use the key for mailchimp
     'MC_API_KEY': '',
