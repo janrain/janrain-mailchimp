@@ -19,7 +19,7 @@ def sync():
         logger.info("batch:{} started".format(mailchimp_batch['id']))
         while not isMailchimpBatchFinished(config, mailchimp_batch):
             logger.info("batch:{} not complete".format(mailchimp_batch['id']))
-            time.sleep(2)
+            time.sleep(config['MC_TIME_BETWEEN_BATCHES'])
         logger.info("batch:{} complete".format(mailchimp_batch['id']))
         total_batch_num += 1
         if total_batch_num == 2:
@@ -30,7 +30,11 @@ def sync():
 def isMailchimpBatchFinished(config, mailchimp_batch):
     endpoint = mailchimp_endpoint(config, "/batches/{}".format(mailchimp_batch.get('id')))
     result = requests.get(endpoint, auth=(config['MC_API_USERNAME'], config['MC_API_KEY']))
-    return result.json()['status'] == 'finished'
+    # get batch status
+    mc_status = result.json()['status']
+    # log status
+    logging.debug("MC Batch {} Status: {}".format(mailchimp_batch.get('id'), mc_status))
+    return mc_status == 'finished'
 
 
 #step 2
@@ -40,7 +44,7 @@ def capture_batch_generator(config, logger):
     batch_size = config['JANRAIN_BATCH_SIZE']
     kwargs = {
         'batch_size': batch_size,
-        'attributes': ['email', 'uuid'],
+        'attributes': ['email', 'uuid'] + list(config["FIELD_MAPPING"]),
         'filtering': "lastUpdated > '{}'".format(toRecordDateTime(datetime.utcfromtimestamp(0)))
     }
 
@@ -51,7 +55,8 @@ def capture_batch_generator(config, logger):
     total_record_num = 0
     capture_app = janrain_datalib.get_app(config['JANRAIN_URI'], config['JANRAIN_CLIENT_ID'], config['JANRAIN_CLIENT_SECRET'])
     for record_num, record in enumerate(capture_app.get_schema('user').records.iterator(**kwargs), start=1):
-        logger.info("fetched record: %d", record_num)
+        logger.debug("fetched record: %d", record_num)
+        logger.info("fetched record uuid: %s", record.get('uuid', "unknown"))
         batch.append(record)
         if len(batch) == config['JANRAIN_BATCH_SIZE']:
             yield batch
@@ -63,12 +68,20 @@ def capture_batch_generator(config, logger):
 
 def mailchimp_build_batch_operation(config, record, ):
     email_md5 = hashlib.md5(record['email'].encode()).hexdigest()
+    merge_fields = {}
+
     return {
         "method": "PUT",
         "path": "lists/{list_id}/members/{email_md5}".format(list_id=config['MC_LIST_ID'], email_md5=email_md5),
         "body": json.dumps({
             "email_address": record['email'],
             "status_if_new": "subscribed",
+            "merge_fields": {
+                mc_field_label: record.get(janrain_attribute)
+                for (janrain_attribute, mc_field_label)
+                in config["FIELD_MAPPING"].items()
+            }
+
         })
     }
 

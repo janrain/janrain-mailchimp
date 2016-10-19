@@ -26,6 +26,9 @@ ENV_VARS = {
     'JANRAIN_ATTRIBUTES': '',
     'JANRAIN_QUERY': '',
     'JANRAIN_FULL_EXPORT': False,
+
+    'FIELD_MAPPING':{'familyName': "LNAME", "givenName": "FNAME"},
+
     'MC_URI_TEMPLATE':'https://{data_center}.api.mailchimp.com/3.0/',
     'MC_API_USERNAME': '',
     # tell eric we had to use the key for mailchimp
@@ -34,9 +37,10 @@ ENV_VARS = {
     'MC_MAX_RETRIES': 3,
     'MC_RETRY_TIMEOUT': 1,
     'MC_CALL_TIMEOUT': 1,
+    'MC_TIME_BETWEEN_BATCHES':5,
     ### need to add a mapping between user profile attributes in janrain to attributes in mailchimp (aka merge_field) must be configurable ###
     ## need a list if what we want to export
-    'MC_FIELDS_TO_EXPORT': ['email', ]
+    #'MC_FIELDS_TO_EXPORT': ['email', ]
 }
 
 def get_config():
@@ -56,7 +60,7 @@ def get_config():
                 value = int(value)
             except ValueError:
                 value = default_value
-        elif isinstance(ENV_VARS[key], list):
+        elif isinstance(ENV_VARS[key], dict):
             try:
                 value = json.loads(value)
             except ValueError:
