@@ -4,3 +4,4 @@ python:
 cache: pip
 script:
 - ./bin/test
+- coveralls
