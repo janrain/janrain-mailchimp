@@ -1,5 +1,4 @@
 """Application configuration"""
-import boto3
 import os
 import json
 
@@ -68,12 +67,5 @@ def get_config():
                 value = default_value
 
         config[key] = value
-
-    # grab keys from s3
-    if all((config['AWS_S3_KEY_BUCKET'], config['AWS_S3_RSA_KEY'])):
-        s3_bucket = boto3.resource('s3').Bucket(config['AWS_S3_KEY_BUCKET'])
-
-        obj = s3_bucket.Object(config['AWS_S3_RSA_KEY']).get()
-        config['REMOTE_RSA_KEY'] = obj['Body'].read().decode('utf-8')
 
     return config
