@@ -3,4 +3,4 @@ python:
 - '3.5'
 cache: pip
 script:
-- nosetests
+- ./bin/test
