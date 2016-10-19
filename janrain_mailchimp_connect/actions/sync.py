@@ -15,6 +15,14 @@ def sync():
     config = flask.current_app.config.copy()
     logger = logging.getLogger(config['LOGGER_NAME'])
     job = app.JobModel.get(config)
+    executor = app.executor
+
+    executor.submit(_sync, config, logger, job)
+
+    return "OK"
+
+def _sync(config, logger, job ):
+
     job.start()
     total_batch_num = 0
     for capture_batch in capture_batch_generator(config, logger, job):
@@ -25,12 +33,9 @@ def sync():
             time.sleep(config['MC_TIME_BETWEEN_BATCHES'])
         logger.info("batch:{} complete".format(mailchimp_batch['id']))
         total_batch_num += 1
-        if total_batch_num == 2:
-            break
 
     job.stop()
     logger.info("Job started at: {} and ended at: {}".format(job.started, job.ended))
-    return "IM at SYNC 4"
 
 def isMailchimpBatchFinished(config, mailchimp_batch):
     endpoint = mailchimp_endpoint(config, "/batches/{}".format(mailchimp_batch.get('id')))

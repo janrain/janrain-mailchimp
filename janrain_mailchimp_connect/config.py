@@ -20,7 +20,7 @@ ENV_VARS = {
     'AWS_S3_RSA_KEY': '',
     #
     'JANRAIN_URI': '',
-    'JANRAIN_SCHEMA_NAME': 'user',
+    'JANRAIN_SCHEMA_NAME': 'cameron_test',
     'JANRAIN_CLIENT_ID': '',
     'JANRAIN_CLIENT_SECRET': '',
     'JANRAIN_BATCH_SIZE': 100,
@@ -28,7 +28,7 @@ ENV_VARS = {
     'JANRAIN_QUERY': '',
     'JANRAIN_FULL_EXPORT': False,
 
-    'FIELD_MAPPING':{'familyName': "LNAME", "givenName": "FNAME"},
+    'FIELD_MAPPING':{'familyName': "LNAME", "givenName": "FNAME", 'birthday': 'BIRTHDAY'},
 
     'MC_URI_TEMPLATE':'https://{data_center}.api.mailchimp.com/3.0/',
     'MC_API_USERNAME': '',

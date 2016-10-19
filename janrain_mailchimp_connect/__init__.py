@@ -3,7 +3,7 @@ import flask
 from janrain_mailchimp_connect._version import __version__
 from janrain_mailchimp_connect.actions import sync
 
-def create_app(config, JobModel):
+def create_app(config, JobModel, executor):
     app = flask.Flask(__name__)
     app.config.update(config)
 
@@ -17,8 +17,7 @@ def create_app(config, JobModel):
         response.headers['X-App-Version'] = __version__
         return response
 
-    # # add the job executor to the app
-    # app.jobsexecutor = jobsexecutor
+    app.executor = executor
     app.JobModel = JobModel
 
     # this is just for convenience during development
