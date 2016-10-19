@@ -1,4 +1,5 @@
 import logging
+from janrain_mailchimp_connect.models import JobModel
 from janrain_mailchimp_connect import create_app
 from janrain_mailchimp_connect.config import get_config
 
@@ -11,5 +12,5 @@ if __name__ == '__main__':
     logger.setLevel(logging.DEBUG)
 
     # must be named application for beanstalk to find it automatically
-    application = create_app(config)
+    application = create_app(config, JobModel)
     application.run()

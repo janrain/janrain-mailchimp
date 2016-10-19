@@ -3,7 +3,7 @@ import flask
 from janrain_mailchimp_connect._version import __version__
 from janrain_mailchimp_connect.actions import sync
 
-def create_app(config):
+def create_app(config, JobModel):
     app = flask.Flask(__name__)
     app.config.update(config)
 
@@ -19,8 +19,14 @@ def create_app(config):
 
     # # add the job executor to the app
     # app.jobsexecutor = jobsexecutor
-    #
-    # # set the jobs model class
-    # app.jobsmodelclass = jobsmodelclass
+    app.JobModel = JobModel
+
+    # this is just for convenience during development
+    if app.config['DEBUG'] and not app.JobModel.exists():
+        # create table with minimal capacity
+        app.JobModel.create_table(
+            read_capacity_units=1,
+            write_capacity_units=1,
+        )
 
     return app

@@ -8,13 +8,16 @@ import requests
 import time
 from urllib.parse import urljoin
 from datetime import datetime
-
+from ..date_utils import toRecordDateTime, fromRecordDateTime
 
 def sync():
+    app = flask.current_app
     config = flask.current_app.config.copy()
     logger = logging.getLogger(config['LOGGER_NAME'])
+    job = app.JobModel.get(config)
+    job.start()
     total_batch_num = 0
-    for capture_batch in capture_batch_generator(config, logger):
+    for capture_batch in capture_batch_generator(config, logger, job):
         mailchimp_batch = send_batch_to_mailchimp(config, logger, capture_batch)
         logger.info("batch:{} started".format(mailchimp_batch['id']))
         while not isMailchimpBatchFinished(config, mailchimp_batch):
@@ -25,6 +28,8 @@ def sync():
         if total_batch_num == 2:
             break
 
+    job.stop()
+    logger.info("Job started at: {} and ended at: {}".format(job.started, job.ended))
     return "IM at SYNC 4"
 
 def isMailchimpBatchFinished(config, mailchimp_batch):
@@ -38,14 +43,15 @@ def isMailchimpBatchFinished(config, mailchimp_batch):
 
 
 #step 2
-def capture_batch_generator(config, logger):
+def capture_batch_generator(config, logger, job):
     ### for this we probably dont need to use sqs, we can just return a list of the records
     """grab records from capture and put them in sqs"""
     batch_size = config['JANRAIN_BATCH_SIZE']
+
     kwargs = {
         'batch_size': batch_size,
-        'attributes': ['email', 'uuid'] + list(config["FIELD_MAPPING"]),
-        'filtering': "lastUpdated > '{}'".format(toRecordDateTime(datetime.utcfromtimestamp(0)))
+        'attributes': ['email', 'uuid', 'lastUpdated'] + list(config["FIELD_MAPPING"]),
+        'filtering': "lastUpdated > '{}'".format(toRecordDateTime(job.lastUpdated or datetime.utcfromtimestamp(0)))
     }
 
     logger.info("starting export from capture with batch size %s...", batch_size)
@@ -54,15 +60,17 @@ def capture_batch_generator(config, logger):
     batch = []
     total_record_num = 0
     capture_app = janrain_datalib.get_app(config['JANRAIN_URI'], config['JANRAIN_CLIENT_ID'], config['JANRAIN_CLIENT_SECRET'])
-    for record_num, record in enumerate(capture_app.get_schema('user').records.iterator(**kwargs), start=1):
+    for record_num, record in enumerate(capture_app.get_schema(config['JANRAIN_SCHEMA_NAME']).records.iterator(**kwargs), start=1):
         logger.debug("fetched record: %d", record_num)
         logger.info("fetched record uuid: %s", record.get('uuid', "unknown"))
         batch.append(record)
         if len(batch) == config['JANRAIN_BATCH_SIZE']:
             yield batch
+            job.lastUpdated = fromRecordDateTime(batch[-1]['lastUpdated'])
             batch = []
     if len(batch):
         yield batch
+        job.lastUpdated = fromRecordDateTime(batch[-1]['lastUpdated'])
 
     logger.info("total records fetched: %d", total_record_num)
 
@@ -116,9 +124,3 @@ def mailchimp_endpoint(config, path=None):
         return base_endpoint
     else:
         return urljoin(base_endpoint, path.lstrip('/'))
-
-def fromRecordDateTime(record_field):
-    return datetime.strptime(record_field.replace(' +0000', ''), '%Y-%m-%d %H:%M:%S.%f')
-
-def toRecordDateTime(datetime_object):
-    return datetime_object.strftime("%Y-%m-%d %H:%M:%S.%f")

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+set -e
+
+DIR=dynamodb
+JAR=DynamoDBLocal.jar
+LIB_DIR=DynamoDBLocal_lib
+
+mkdir -p $DIR
+cd $DIR
+
+if [ ! -f $JAR -o ! -d $LIB_DIR ]; then
+  wget http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip
+  unzip dynamodb_local_latest.zip
+fi
+
+java -Djava.library.path=$LIB_DIR -jar $JAR -sharedDb -inMemory
