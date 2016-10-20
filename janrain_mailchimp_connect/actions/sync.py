@@ -81,7 +81,6 @@ def capture_batch_generator(config, logger, job):
 
 def mailchimp_build_batch_operation(config, record, ):
     email_md5 = hashlib.md5(record['email'].encode()).hexdigest()
-    merge_fields = {}
 
     return {
         "method": "PUT",
@@ -94,7 +93,6 @@ def mailchimp_build_batch_operation(config, record, ):
                 for (janrain_attribute, mc_field_label)
                 in config["FIELD_MAPPING"].items()
             }
-
         })
     }
 

@@ -104,3 +104,57 @@ class test_mailchimp_build_batch(unittest.TestCase):
         }
         actual = mailchimp_build_batch(sentinel.config, records)
         self.assertEqual(actual, expected)
+
+    @patch('janrain_mailchimp_connect.actions.sync.mailchimp_build_batch_operation', autospec=True, spec_set=True)
+    def test_email_is_none(self, mailchimp_build_batch_operation):
+        records = [
+            {'email': None},
+        ]
+        expected = {
+            "operations": [
+            ]
+        }
+        actual = mailchimp_build_batch(sentinel.config, records)
+        self.assertEqual(actual, expected)
+
+class test_mailchimp_endpoint(unittest.TestCase):
+
+    def test_happy_path_is_none(self):
+        config = {
+            'MC_API_KEY': '',
+            'MC_URI_TEMPLATE': '{data_center}'
+        }
+        expected = ''
+        actual = mailchimp_endpoint(config, None)
+        self.assertEqual(actual, expected)
+
+    @patch("janrain_mailchimp_connect.actions.sync.urljoin")
+    def test_happy_path_is_not_none(self, urljoin):
+        path = "abc"
+        config = {
+            'MC_API_KEY': '',
+            'MC_URI_TEMPLATE': '{data_center}'
+        }
+        expected = urljoin('', path)
+        actual = mailchimp_endpoint(config, path)
+        self.assertEqual(actual, expected)
+
+    @patch("janrain_mailchimp_connect.actions.sync.urljoin")
+    def test_happy_path_with_slashes(self, urljoin):
+        path = "//abc"
+        config = {
+            'MC_API_KEY': '',
+            'MC_URI_TEMPLATE': '{data_center}'
+        }
+        expected = urljoin('', path.lstrip('/'))
+        actual = mailchimp_endpoint(config, path)
+        self.assertEqual(actual, expected)
+
+    def test_error_invalid_template(self):
+        config = {
+            'MC_API_KEY': '',
+            'MC_URI_TEMPLATE': ''
+        }
+        expected = ''
+        actual = mailchimp_endpoint(config, None)
+        self.assertEqual(actual, expected)
