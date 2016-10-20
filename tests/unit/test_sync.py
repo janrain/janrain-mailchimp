@@ -1,8 +1,11 @@
 import unittest
+import json
 from unittest.mock import (
     MagicMock,
     patch,
     sentinel,
+    Mock,
+    call,
 )
 from janrain_mailchimp_connect.actions.sync import *
 
@@ -23,6 +26,29 @@ class TestMyMethods(unittest.TestCase) :
         #call
         result = capture_batch_generator(sync_info, config, logger)
         #test
+
+class test_isMailChimpBatchFinished(unittest.TestCase):
+    def setUp(self):
+        self.requests = patch("janrain_mailchimp_connect.actions.sync.requests", autospec=True).start()
+        self.mailchimp_endpoint = patch("janrain_mailchimp_connect.actions.sync.mailchimp_endpoint", autospec=True).start()
+
+    def tearDown(self):
+        patch.stopall()
+
+    def test_happy_path(self):
+        self.mailchimp_endpoint.return_value = sentinel.endpoint
+        result = Mock()
+        result.json.return_value = {'status': 'finished'}
+        self.requests.get.return_value = result
+        config = MagicMock()
+        batch = MagicMock()
+
+        actual = isMailchimpBatchFinished(config, batch)
+
+        self.assertTrue(actual)
+        self.mailchimp_endpoint.assert_called_once_with(config, "/batches/{}".format(batch.get()))
+        batch.get.assert_has_calls([call('id')])
+
 
 class test_mailchimp_build_batch_operation(unittest.TestCase):
 
