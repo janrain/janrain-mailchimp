@@ -6,26 +6,135 @@ from unittest.mock import (
     sentinel,
     Mock,
     call,
+    ANY,
 )
 from janrain_mailchimp_connect.actions.sync import *
+from janrain_mailchimp_connect.actions.sync import _sync
 
-class TestMyMethods(unittest.TestCase) :
+class test_sync(unittest.TestCase):
 
-    def test_load_records(self):
-        #setuo
-        logger = MagicMock()
-        logger.info = MagicMock()
-        sync_info = {'last_run': 'a_time',
-                     'janrain_attributes':[],
-                     'capture_schema':"put something here",
-                     'queue':"put something here",
-                     }
-        config = {'MC_FIELDS_TO_EXPORT':['familyName', 'givenName'],
-                  'JANRAIN_BATCH_SIZE':'100',
-                  }
-        #call
-        result = capture_batch_generator(sync_info, config, logger)
-        #test
+    @patch('janrain_mailchimp_connect.actions.sync.logging', autospec=True, spec_set=True)
+    @patch('janrain_mailchimp_connect.actions.sync.flask')
+    def test(self, flask, logging):
+        app = Mock()
+        flask.current_app = app
+        app.config = {
+            'LOGGER_NAME': sentinel.logger_name,
+        }
+        job = Mock()
+        app.JobModel.get.return_value = job
+        app.executor = Mock()
+
+        self.assertEqual(sync(), "OK")
+        logging.getLogger.assert_called_once_with(sentinel.logger_name)
+        app.JobModel.get.assert_called_once_with(app.config)
+        app.executor.submit.assert_called_once_with(_sync, app.config, logging.getLogger(), job)
+
+class test__sync(unittest.TestCase):
+
+    @patch('janrain_mailchimp_connect.actions.sync.time.sleep', autospec=True, spec_set=True)
+    @patch('janrain_mailchimp_connect.actions.sync.send_batch_to_mailchimp', autospec=True, spec_set=True)
+    @patch('janrain_mailchimp_connect.actions.sync.isMailchimpBatchFinished', autospec=True, spec_set=True)
+    @patch('janrain_mailchimp_connect.actions.sync.capture_batch_generator', autospec=True, spec_set=True)
+    def test(self, capture_batch_generator, isMailchimpBatchFinished, send_batch_to_mailchimp, sleep):
+        job = Mock()
+        logger = Mock()
+        config = MagicMock()
+        capture_batch_generator.return_value = [
+            sentinel.capture_batch_1, sentinel.capture_batch_2,
+        ]
+        isMailchimpBatchFinished.side_effect = [
+            False, True, True,
+        ]
+
+        self.assertIsNone(_sync(config, logger, job))
+        job.start.assert_called_once_with()
+        isMailchimpBatchFinished.assert_has_calls([
+            call(config, send_batch_to_mailchimp(config, logger, sentinel.capture_batch_1)),
+            call(config, send_batch_to_mailchimp(config, logger, sentinel.capture_batch_1)),
+            call(config, send_batch_to_mailchimp(config, logger, sentinel.capture_batch_2)),
+        ])
+        sleep.assert_has_calls([
+            call(config['MC_TIME_BETWEEN_BATCHES']),
+        ])
+        job.stop.assert_called_once_with()
+
+class test_capture_batch_generator(unittest.TestCase):
+
+    def setUp(self):
+        self.fromRecordDateTime = patch('janrain_mailchimp_connect.actions.sync.fromRecordDateTime', autospec=True, spec_set=True).start()
+        self.toRecordDateTime = patch('janrain_mailchimp_connect.actions.sync.toRecordDateTime', autospec=True, spec_set=True).start()
+        self.janrain_datalib = patch('janrain_mailchimp_connect.actions.sync.janrain_datalib', autospec=True, spec_set=True).start()
+        self.logger = Mock()
+        self.job = Mock()
+        self.datalib_schema = Mock()
+        self.datalib_app = Mock()
+        self.datalib_app.get_schema.return_value = self.datalib_schema
+        self.janrain_datalib.get_app.return_value = self.datalib_app
+
+    def tearDown(self):
+        patch.stopall()
+
+    def test_0_record(self):
+        config = {
+            'JANRAIN_URI': sentinel.janrain_uri,
+            'JANRAIN_CLIENT_ID': sentinel.janrain_client_id,
+            'JANRAIN_CLIENT_SECRET': sentinel.janrain_client_secret,
+            'JANRAIN_BATCH_SIZE': sentinel.janrain_batch_size,
+            'JANRAIN_SCHEMA_NAME': sentinel.janrain_schema_name,
+            'FIELD_MAPPING': {},
+        }
+        self.datalib_schema.records.iterator.return_value = []
+        generator = capture_batch_generator(config, self.logger, self.job)
+        self.assertListEqual(list(generator), [])
+        self.janrain_datalib.get_app.assert_called_once_with(
+            sentinel.janrain_uri,
+            sentinel.janrain_client_id,
+            sentinel.janrain_client_secret)
+
+    def test_1_record(self):
+        config = {
+            'JANRAIN_URI': sentinel.janrain_uri,
+            'JANRAIN_CLIENT_ID': sentinel.janrain_client_id,
+            'JANRAIN_CLIENT_SECRET': sentinel.janrain_client_secret,
+            'JANRAIN_BATCH_SIZE': sentinel.janrain_batch_size,
+            'JANRAIN_SCHEMA_NAME': sentinel.janrain_schema_name,
+            'FIELD_MAPPING': {},
+        }
+        self.datalib_schema.records.iterator.return_value = [
+            { 'uuid': sentinel.uuid_1, 'lastUpdated': sentinel.lastUpdated_1 },
+        ]
+        generator = capture_batch_generator(config, self.logger, self.job)
+        self.assertListEqual(list(generator), [
+            [{ 'uuid': sentinel.uuid_1, 'lastUpdated': sentinel.lastUpdated_1 }]
+        ])
+        self.janrain_datalib.get_app.assert_called_once_with(
+            sentinel.janrain_uri,
+            sentinel.janrain_client_id,
+            sentinel.janrain_client_secret)
+
+    def test_2_record(self):
+        config = {
+            'JANRAIN_URI': sentinel.janrain_uri,
+            'JANRAIN_CLIENT_ID': sentinel.janrain_client_id,
+            'JANRAIN_CLIENT_SECRET': sentinel.janrain_client_secret,
+            'JANRAIN_BATCH_SIZE': 1,
+            'JANRAIN_SCHEMA_NAME': sentinel.janrain_schema_name,
+            'FIELD_MAPPING': {},
+        }
+        self.datalib_schema.records.iterator.return_value = [
+            { 'uuid': sentinel.uuid_1, 'lastUpdated': sentinel.lastUpdated_1 },
+            { 'uuid': sentinel.uuid_2, 'lastUpdated': sentinel.lastUpdated_2 },
+        ]
+        generator = capture_batch_generator(config, self.logger, self.job)
+        self.assertListEqual(list(generator), [
+            [{ 'uuid': sentinel.uuid_1, 'lastUpdated': sentinel.lastUpdated_1 }],
+            [{ 'uuid': sentinel.uuid_2, 'lastUpdated': sentinel.lastUpdated_2 }]
+        ])
+        self.janrain_datalib.get_app.assert_called_once_with(
+            sentinel.janrain_uri,
+            sentinel.janrain_client_id,
+            sentinel.janrain_client_secret)
 
 class test_isMailChimpBatchFinished(unittest.TestCase):
     def setUp(self):
