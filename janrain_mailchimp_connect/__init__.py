@@ -1,7 +1,7 @@
 """Flask application setup."""
 import flask
 from janrain_mailchimp_connect._version import __version__
-from janrain_mailchimp_connect.actions import sync
+from janrain_mailchimp_connect.actions.sync import sync
 
 def create_app(config, JobModel, executor):
     app = flask.Flask(__name__)
