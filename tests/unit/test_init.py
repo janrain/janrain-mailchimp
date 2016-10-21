@@ -1,7 +1,8 @@
+import logging
 from janrain_mailchimp_connect import models
 from unittest import TestCase
 from unittest.mock import patch, sentinel, Mock, MagicMock, call, ANY
-from janrain_mailchimp_connect.__init__ import create_app
+from janrain_mailchimp_connect.__init__ import create_app, logging_init
 
 class init_test(TestCase):
 
@@ -40,3 +41,26 @@ class init_test(TestCase):
             write_capacity_units=1,
         )
 
+class logging_init_test(TestCase):
+
+    def setUp(self):
+
+        self.app = Mock()
+        self.app.config = {
+            'APP_LOG_FILE': 'test_app_log_file.log',
+            'APP_LOG_NUM_BACKUPS': 'test_app_log_backups',
+            'APP_LOG_FILESIZE': 1000,
+            'LOGGER_NAME': 'test_logger_name',
+        }
+
+    def test_production(self):
+
+        self.app.debug = False
+        handler = logging_init(self.app)
+        self.assertEqual(handler.level, logging.INFO)
+
+    def test_debug(self):
+
+        self.app.debug = True
+        handler = logging_init(self.app)
+        self.assertEqual(handler.level, logging.DEBUG)

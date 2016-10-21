@@ -1,5 +1,7 @@
 """Flask application setup."""
 import flask
+import logging
+import logging.handlers
 from janrain_mailchimp_connect._version import __version__
 from janrain_mailchimp_connect.actions.sync import sync
 
@@ -29,3 +31,25 @@ def create_app(config, JobModel, executor):
         )
 
     return app
+
+def logging_init(app):
+  # setup logging
+  handler = logging.handlers.RotatingFileHandler(
+      app.config['APP_LOG_FILE'],
+      backupCount=app.config['APP_LOG_NUM_BACKUPS'],
+      maxBytes=app.config['APP_LOG_FILESIZE'])
+
+  if app.debug:
+      handler.setLevel(logging.DEBUG)
+  else:
+      handler.setLevel(logging.INFO)
+
+  msg_format = '[%(asctime)s] %(levelname)s: %(message)s'
+  timestamp_format = '%Y-%m-%d %H:%M:%S %z'
+  formatter = logging.Formatter(msg_format, timestamp_format)
+  handler.setFormatter(formatter)
+  logger = logging.getLogger(app.config['LOGGER_NAME'])
+  logger.addHandler(handler)
+  logger.setLevel(logging.DEBUG)
+
+  return handler

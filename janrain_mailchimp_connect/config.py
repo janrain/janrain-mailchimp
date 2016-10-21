@@ -8,6 +8,10 @@ ENV_VARS = {
     'DEBUG': True,
     'LOGGER_NAME': 'janrain_mailchimp',
 
+    'APP_LOG_FILE': '/opt/python/log/application.log',
+    'APP_LOG_FILESIZE': 10000000,
+    'APP_LOG_NUM_BACKUPS': 20,
+
     'AWS_ACCESS_KEY_ID': '',
     'AWS_SECRET_ACCESS_KEY': '',
     'AWS_DEFAULT_REGION': 'us-west-2',
@@ -25,6 +29,7 @@ ENV_VARS = {
     'MC_URI_TEMPLATE':'https://{data_center}.api.mailchimp.com/3.0/',
     'MC_API_KEY': '',
     'MC_LIST_ID': '',
+    'MC_TIME_BETWEEN_BATCHES': 5,
 }
 
 def get_config():

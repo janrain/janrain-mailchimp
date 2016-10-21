@@ -50,9 +50,9 @@ class test__sync(unittest.TestCase):
         self.assertIsNone(_sync(config, logger, job))
         job.start.assert_called_once_with()
         isMailchimpBatchFinished.assert_has_calls([
-            call(config, send_batch_to_mailchimp(config, logger, sentinel.capture_batch_1)),
-            call(config, send_batch_to_mailchimp(config, logger, sentinel.capture_batch_1)),
-            call(config, send_batch_to_mailchimp(config, logger, sentinel.capture_batch_2)),
+            call(config, logger, send_batch_to_mailchimp(config, logger, sentinel.capture_batch_1)),
+            call(config, logger, send_batch_to_mailchimp(config, logger, sentinel.capture_batch_1)),
+            call(config, logger, send_batch_to_mailchimp(config, logger, sentinel.capture_batch_2)),
         ])
         sleep.assert_has_calls([
             call(config['MC_TIME_BETWEEN_BATCHES']),
@@ -62,7 +62,7 @@ class test__sync(unittest.TestCase):
 class test_capture_batch_generator(unittest.TestCase):
 
     def setUp(self):
-        self.fromRecordDateTime = patch('janrain_mailchimp_connect.actions.sync.fromRecordDateTime', autospec=True, spec_set=True).start()
+        self.fromRecorpdDateTime = patch('janrain_mailchimp_connect.actions.sync.fromRecordDateTime', autospec=True, spec_set=True).start()
         self.toRecordDateTime = patch('janrain_mailchimp_connect.actions.sync.toRecordDateTime', autospec=True, spec_set=True).start()
         self.janrain_datalib = patch('janrain_mailchimp_connect.actions.sync.janrain_datalib', autospec=True, spec_set=True).start()
         self.logger = Mock()
@@ -140,6 +140,7 @@ class test_isMailChimpBatchFinished(unittest.TestCase):
     def setUp(self):
         self.requests = patch("janrain_mailchimp_connect.actions.sync.requests", autospec=True).start()
         self.mailchimp_endpoint = patch("janrain_mailchimp_connect.actions.sync.mailchimp_endpoint", autospec=True).start()
+        self.logger = Mock()
 
     def tearDown(self):
         patch.stopall()
@@ -147,12 +148,18 @@ class test_isMailChimpBatchFinished(unittest.TestCase):
     def test_happy_path(self):
         self.mailchimp_endpoint.return_value = sentinel.endpoint
         result = Mock()
-        result.json.return_value = {'status': 'finished'}
+        result.json.return_value = {
+            'id': sentinel.id,
+            'status': 'finished',
+            'total_operations': sentinel.total_operations,
+            'finished_operations': sentinel.finished_operations,
+            'errored_operations': sentinel.errored_operations,
+        }
         self.requests.get.return_value = result
         config = MagicMock()
         batch = MagicMock()
 
-        actual = isMailchimpBatchFinished(config, batch)
+        actual = isMailchimpBatchFinished(config, self.logger, batch)
 
         self.assertTrue(actual)
         self.mailchimp_endpoint.assert_called_once_with(config, "/batches/{}".format(batch.get()))

@@ -37,6 +37,18 @@ to the log.
 
 - `LOGGER_NAME`: Name of the logger.
 
+#### APP
+
+- `APP_LOG_FILE`: Full path to the file where the app will write the log.
+(should only be used during local development, leave blank when deployed
+to elastic beanstalk)
+
+- `APP_LOG_FILESIZE`: Maximum size in bytes of the app log before it gets
+rotated. (default: `10000000`)
+
+- `APP_LOG_NUM_BACKUPS`: Number of rotated backups of the app log that will
+be kept. (default: `20`)
+
 #### AWS
 
 - `AWS_DEFAULT_REGION`: AWS region the app runs in.

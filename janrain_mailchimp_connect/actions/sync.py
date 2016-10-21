@@ -24,27 +24,27 @@ def sync():
 def _sync(config, logger, job ):
 
     job.start()
+    logger.info("Job started at {}".format(job.started))
     total_batch_num = 0
     for capture_batch in capture_batch_generator(config, logger, job):
         mailchimp_batch = send_batch_to_mailchimp(config, logger, capture_batch)
-        logger.info("batch:{} started".format(mailchimp_batch['id']))
-        while not isMailchimpBatchFinished(config, mailchimp_batch):
-            logger.info("batch:{} not complete".format(mailchimp_batch['id']))
+        logger.info("MailChimp Batch: {} Started".format(mailchimp_batch['id']))
+        while not isMailchimpBatchFinished(config, logger, mailchimp_batch):
+            logger.info("MailChimp Batch: {} Not Finished".format(mailchimp_batch['id']))
+            logger.debug('Sleeping %d seconds', config['MC_TIME_BETWEEN_BATCHES'])
             time.sleep(config['MC_TIME_BETWEEN_BATCHES'])
-        logger.info("batch:{} complete".format(mailchimp_batch['id']))
+        logger.info("MailChimp Batch: {} Finished".format(mailchimp_batch['id']))
         total_batch_num += 1
 
     job.stop()
-    logger.info("Job started at: {} and ended at: {}".format(job.started, job.ended))
+    logger.info("Job ended at: {}".format(job.ended))
 
-def isMailchimpBatchFinished(config, mailchimp_batch):
+def isMailchimpBatchFinished(config, logger, mailchimp_batch):
     endpoint = mailchimp_endpoint(config, "/batches/{}".format(mailchimp_batch.get('id')))
-    result = requests.get(endpoint, auth=(config['MC_API_USERNAME'], config['MC_API_KEY']))
-    # get batch status
-    mc_status = result.json()['status']
-    # log status
-    logging.debug("MC Batch {} Status: {}".format(mailchimp_batch.get('id'), mc_status))
-    return mc_status == 'finished'
+    result = requests.get(endpoint, auth=("janrain-mailchimp", config['MC_API_KEY']))
+    result_json = result.json()
+    logger.info("MailChimp Batch: {id}, Status: {status}, Total Operations: {total_operations}, Finished Operations: {finished_operations}, Errored Operations: {errored_operations}".format_map(result_json))
+    return result.json()['status'] == 'finished'
 
 
 #step 2
@@ -59,16 +59,16 @@ def capture_batch_generator(config, logger, job):
         'filtering': "lastUpdated > '{}'".format(toRecordDateTime(job.lastUpdated or datetime.utcfromtimestamp(0)))
     }
 
-    logger.info("starting export from capture with batch size %s...", batch_size)
+    logger.info("Export Started")
 
     # need to get each record and add it to a list which we can return
     batch = []
     total_record_num = 0
     capture_app = janrain_datalib.get_app(config['JANRAIN_URI'], config['JANRAIN_CLIENT_ID'], config['JANRAIN_CLIENT_SECRET'])
     for record_num, record in enumerate(capture_app.get_schema(config['JANRAIN_SCHEMA_NAME']).records.iterator(**kwargs), start=1):
-        logger.debug("fetched record: %d", record_num)
-        logger.info("fetched record uuid: %s", record.get('uuid', "unknown"))
+        logger.debug("fetched record: %d, uuid: %s", record_num, record.get('uuid', "unknown"))
         batch.append(record)
+        total_record_num +=1
         if len(batch) == config['JANRAIN_BATCH_SIZE']:
             yield batch
             job.lastUpdated = fromRecordDateTime(batch[-1]['lastUpdated'])
@@ -77,7 +77,7 @@ def capture_batch_generator(config, logger, job):
         yield batch
         job.lastUpdated = fromRecordDateTime(batch[-1]['lastUpdated'])
 
-    logger.info("total records fetched: %d", total_record_num)
+    logger.info("Export Finished, Total records fetched: %d", total_record_num)
 
 def mailchimp_build_batch_operation(config, record, ):
     email_md5 = hashlib.md5(record['email'].encode()).hexdigest()
@@ -106,19 +106,15 @@ def mailchimp_build_batch(config, records):
     }
 
 def send_batch_to_mailchimp(config, logger, records):
-    """make the post call to mailchimp with the batch, mailchimp will return a batch id which we can use to check
-    the status
-
+    """ Make the post call to mailchimp with the batch.
     mailchimp endpoint: https://<dc>.api.mailchimp.com/3.0/batches
-
     """
-    #conver the records into operations
     batch = mailchimp_build_batch(config, records)
-    #print(batch)
-    #make the endpoint
     endpoint = mailchimp_endpoint(config, "/batches")
-    result = requests.post(endpoint, auth=(config['MC_API_USERNAME'], config['MC_API_KEY']), json=batch)
-    return result.json()
+    result = requests.post(endpoint, auth=("janrain-mailchimp", config['MC_API_KEY']), json=batch)
+    result_json = result.json()
+    logger.info("MailChimp Batch: {id}, Status: {status}, Total Operations: {total_operations}, Finished Operations: {finished_operations}, Errored Operations: {errored_operations}".format_map(result_json))
+    return result_json
 
 def mailchimp_endpoint(config, path=None):
     data_center= config['MC_API_KEY'].split('-')[-1]
