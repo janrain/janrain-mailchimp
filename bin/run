@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+
+# Causes script to stop on the first script that errors
+set -e
+
+# Setup Python 3 Virtual Environment
+if [ ! -d "venv" ]; then
+  virtualenv -p python3 venv
+fi
+# Activate Virtual Environment
+source venv/bin/activate
+
+source ./bin/environment
+
+# Download and Run DynamoDB in the background.
+source ./bin/dynamodb
+dynamodb_install
+dynamodb_run &
+
+# Install Python Requirements.
+pip install -r requirements.txt
+
+# Start Application in the backgroup.
+python application.py &
+
+# Kill subproccess when script exits.
+trap "trap - SIGTERM && kill -- -$$" SIGINT SIGTERM EXIT
+
+# Don't exit until background jobs finish.
+wait

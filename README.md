@@ -60,12 +60,9 @@ DynamoDB development](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-g
 
 ### Running Locally
 
-1. Create virtual environment (optional) `virtualenv -p python3 venv && source venv/bin/activate`
-1. Install dependencies `pip install -r requirements.txt`
-1. Run it `python application.py`
+1. Edit `bin/environment` to include your values
+1. Start application `./bin/run`
 
 ### Testing
 
-1. Create virtual environment (optional) `virtualenv -p python3 venv && source venv/bin/activate`
-1. Install dependencies `pip install -r requirements.txt`
 1. Run test suite `./bin/test`

@@ -2,16 +2,25 @@
 
 set -e
 
-DIR=dynamodb
-JAR=DynamoDBLocal.jar
-LIB_DIR=DynamoDBLocal_lib
+DYNAMODB_DIR="${DYNAMODB_DIR:-dynamodb}"
+DYNAMODB_JAR="${DYNAMODB_JAR:-DynamoDBLocal.jar}"
+DYNAMODB_LIB_DIR="${DYNAMODB_LIB_DIR:-DynamoDBLocal_lib}"
 
-mkdir -p $DIR
-cd $DIR
 
-if [ ! -f $JAR -o ! -d $LIB_DIR ]; then
-  wget http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip
-  unzip dynamodb_local_latest.zip
-fi
+dynamodb_install () {
+  mkdir -p $DYNAMODB_DIR
+  cd $DYNAMODB_DIR
 
-java -Djava.library.path=$LIB_DIR -jar $JAR -sharedDb -inMemory
+  if [ ! -f $DYNAMODB_JAR -o ! -d $DYNAMODB_LIB_DIR ]; then
+    wget http://dynamodb-local.s3-website-us-west-2.amazonaws.com/dynamodb_local_latest.zip
+    unzip dynamodb_local_latest.zip
+  fi
+
+  cd -
+}
+
+dynamodb_run () {
+  cd $DYNAMODB_DIR
+  java -Djava.library.path=$DYNAMODB_LIB_DIR -jar $DYNAMODB_JAR -sharedDb -inMemory
+  cd -
+}
