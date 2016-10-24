@@ -58,15 +58,25 @@ be kept. (default: `20`)
 to elastic beanstalk. [Requires having .aws/credentials file for local 
 DynamoDB development](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-getting-started.html))
 
-- `AWS_DYNAMODB_TABLE`: Name of the table in DynamoDB to use. (dafault: `janrain-mailchimp`)
+- `AWS_DYNAMODB_TABLE`: Name of the table in DynamoDB to use. (default: `janrain-mailchimp`)
 
 #### Janrain
 
 - `JANRAIN_BATCH_SIZE`: The size of batch for each Janrain Capture Call.
 
+- `JANRAIN_MAX_LASTUPDATED`: Number of Days the lastUpdated cannot exceed. (default: `1`)
+
+- `JANRAIN_FULL_EXPORT`: If `True` ignore `JANRAIN_MAX_LASTUPDATED` and export everything. (default: `False`)
+
 #### MailChimp
 
 - `MC_URI_TEMPLATE`: Template used to create MailChimp API URI.
+
+- `MC_TIME_BETWEEN_BATCHES`: The time in seconds to wait before checking if the MailChimp batch is complete. (default `5`)
+    
+- `MC_MAX_RECORDS_IN_BATCH`: The max number of records allowed in MailChimp the batch. (default `20000`)
+    
+- `MC_MAX_BYTES_IN_BATCH`: The max number of bytes allowed in the MailChimp batch. (default `4000000`)
 
 ## Development
 

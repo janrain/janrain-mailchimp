@@ -6,6 +6,7 @@ import json
 import logging
 import requests
 import time
+import sys
 from urllib.parse import urljoin
 from datetime import datetime
 from ..date_utils import toRecordDateTime, fromRecordDateTime
@@ -53,10 +54,15 @@ def capture_batch_generator(config, logger, job):
     """grab records from capture and put them in sqs"""
     batch_size = config['JANRAIN_BATCH_SIZE']
 
+    lastUpdated = job.lastUpdated or datetime.utcfromtimestamp(0)
+
+    if not config['JANRAIN_FULL_EXPORT'] and (datetime.now()-lastUpdated).days > config['JANRAIN_MAX_LASTUPDATED']:
+        exit(logger, "LastUpdated too many days ago {} > {}".format((datetime.now()-lastUpdated).days, config['JANRAIN_MAX_LASTUPDATED']))
+
     kwargs = {
         'batch_size': batch_size,
         'attributes': ['email', 'uuid', 'lastUpdated'] + list(config["FIELD_MAPPING"]),
-        'filtering': "lastUpdated > '{}'".format(toRecordDateTime(job.lastUpdated or datetime.utcfromtimestamp(0)))
+        'filtering': "lastUpdated > '{}'".format(toRecordDateTime(lastUpdated))
     }
 
     logger.info("Export Started")
@@ -110,6 +116,10 @@ def send_batch_to_mailchimp(config, logger, records):
     mailchimp endpoint: https://<dc>.api.mailchimp.com/3.0/batches
     """
     batch = mailchimp_build_batch(config, records)
+    if len(records) > config['MC_MAX_RECORDS_IN_BATCH']:
+        exit(logger, "Too many records in batch to send to MailChimp: {} > {}".format(len(records), config['MC_MAX_RECORDS_IN_BATCH']))
+    if sys.getsizeof(batch) > config['MC_MAX_BYTES_IN_BATCH']:
+        exit(logger, "Too many bytes in batch to send to MailChimp: {} > {}".format(sys.getsizeof(batch), config['MC_MAX_BYTES_IN_BATCH']))
     endpoint = mailchimp_endpoint(config, "/batches")
     result = requests.post(endpoint, auth=("janrain-mailchimp", config['MC_API_KEY']), json=batch)
     result_json = result.json()
@@ -123,3 +133,7 @@ def mailchimp_endpoint(config, path=None):
         return base_endpoint
     else:
         return urljoin(base_endpoint, path.lstrip('/'))
+
+def exit(logger, message):
+    logger.error(message)
+    raise SystemExit(message)

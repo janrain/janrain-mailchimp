@@ -1,5 +1,6 @@
 import unittest
 import json
+from collections import namedtuple
 from unittest.mock import (
     MagicMock,
     patch,
@@ -65,6 +66,8 @@ class test_capture_batch_generator(unittest.TestCase):
         self.fromRecorpdDateTime = patch('janrain_mailchimp_connect.actions.sync.fromRecordDateTime', autospec=True, spec_set=True).start()
         self.toRecordDateTime = patch('janrain_mailchimp_connect.actions.sync.toRecordDateTime', autospec=True, spec_set=True).start()
         self.janrain_datalib = patch('janrain_mailchimp_connect.actions.sync.janrain_datalib', autospec=True, spec_set=True).start()
+        self.exit = patch('janrain_mailchimp_connect.actions.sync.exit', autospec=True, spec_set=True).start()
+        self.exit.side_effect = SystemExit
         self.logger = Mock()
         self.job = Mock()
         self.datalib_schema = Mock()
@@ -82,6 +85,7 @@ class test_capture_batch_generator(unittest.TestCase):
             'JANRAIN_CLIENT_SECRET': sentinel.janrain_client_secret,
             'JANRAIN_BATCH_SIZE': sentinel.janrain_batch_size,
             'JANRAIN_SCHEMA_NAME': sentinel.janrain_schema_name,
+            'JANRAIN_FULL_EXPORT': True,
             'FIELD_MAPPING': {},
         }
         self.datalib_schema.records.iterator.return_value = []
@@ -99,6 +103,7 @@ class test_capture_batch_generator(unittest.TestCase):
             'JANRAIN_CLIENT_SECRET': sentinel.janrain_client_secret,
             'JANRAIN_BATCH_SIZE': sentinel.janrain_batch_size,
             'JANRAIN_SCHEMA_NAME': sentinel.janrain_schema_name,
+            'JANRAIN_FULL_EXPORT': True,
             'FIELD_MAPPING': {},
         }
         self.datalib_schema.records.iterator.return_value = [
@@ -120,6 +125,7 @@ class test_capture_batch_generator(unittest.TestCase):
             'JANRAIN_CLIENT_SECRET': sentinel.janrain_client_secret,
             'JANRAIN_BATCH_SIZE': 1,
             'JANRAIN_SCHEMA_NAME': sentinel.janrain_schema_name,
+            'JANRAIN_FULL_EXPORT': True,
             'FIELD_MAPPING': {},
         }
         self.datalib_schema.records.iterator.return_value = [
@@ -300,3 +306,68 @@ class test_mailchimp_endpoint(unittest.TestCase):
         expected = ''
         actual = mailchimp_endpoint(config, None)
         self.assertEqual(actual, expected)
+
+class test_send_batch_to_mailchimp(unittest.TestCase):
+
+    def setUp(self):
+        self.mailchimp_build_batch = patch('janrain_mailchimp_connect.actions.sync.mailchimp_build_batch', autospec=True, spec_set=True).start()
+        self.mailchimp_endpoint = patch('janrain_mailchimp_connect.actions.sync.mailchimp_endpoint', autospec=True, spec_set=True).start()
+        self.requests = patch('janrain_mailchimp_connect.actions.sync.requests', autospec=True, spec_set=True).start()
+        self.exit = patch('janrain_mailchimp_connect.actions.sync.exit', autospec=True, spec_set=True).start()
+        self.exit.side_effect = SystemExit
+        self.logger = Mock()
+
+    def tearDown(self):
+        patch.stopall()
+
+    def test_None_records(self):
+        config = {
+            'MC_MAX_RECORDS_IN_BATCH': 1000,
+            'MC_MAX_BYTES_IN_BATCH': 1000,
+            'MC_API_KEY': sentinel.mc_api_key,
+        }
+        records = None
+        with self.assertRaises(TypeError):
+            send_batch_to_mailchimp(config, self.logger, records)
+
+    def test_no_records(self):
+        config = {
+            'MC_MAX_RECORDS_IN_BATCH': 1000,
+            'MC_MAX_BYTES_IN_BATCH': 1000,
+            'MC_API_KEY': sentinel.mc_api_key,
+        }
+        records = []
+        self.assertEqual(
+            send_batch_to_mailchimp(config, self.logger, records),
+            self.requests.post(self.mailchimp_endpoint(config, "batches")).json()
+        )
+
+    def test_number_of_records_assert(self):
+        config = {
+            'MC_MAX_RECORDS_IN_BATCH': 0,
+            'MC_MAX_BYTES_IN_BATCH': 1000,
+            'MC_API_KEY': sentinel.mc_api_key,
+        }
+        records = [{}]
+        self.mailchimp_build_batch.return_value = [sentinel.record_1]
+        with self.assertRaises(SystemExit):
+            send_batch_to_mailchimp(config, self.logger, records)
+
+    def test_number_of_bytes_assert(self):
+        config = {
+            'MC_MAX_RECORDS_IN_BATCH': 1000,
+            'MC_MAX_BYTES_IN_BATCH': 0,
+            'MC_API_KEY': sentinel.mc_api_key,
+        }
+        records = [{}]
+        self.mailchimp_build_batch.return_value = [sentinel.record_1]
+        with self.assertRaises(SystemExit):
+            send_batch_to_mailchimp(config, self.logger, records)
+
+class test_exit(unittest.TestCase):
+
+    def test(self):
+        logger = Mock()
+        with self.assertRaises(SystemExit):
+            exit(logger, sentinel.message)
+        logger.error.assert_called_with(sentinel.message)

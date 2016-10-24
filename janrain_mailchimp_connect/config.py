@@ -23,6 +23,8 @@ ENV_VARS = {
     'JANRAIN_CLIENT_ID': '',
     'JANRAIN_CLIENT_SECRET': '',
     'JANRAIN_BATCH_SIZE': 100,
+    'JANRAIN_MAX_LASTUPDATED': 1,
+    'JANRAIN_FULL_EXPORT': False,
 
     'FIELD_MAPPING':{'familyName': "LNAME", "givenName": "FNAME", 'birthday': 'BIRTHDAY'},
 
@@ -30,6 +32,8 @@ ENV_VARS = {
     'MC_API_KEY': '',
     'MC_LIST_ID': '',
     'MC_TIME_BETWEEN_BATCHES': 5,
+    'MC_MAX_RECORDS_IN_BATCH': 20000,
+    'MC_MAX_BYTES_IN_BATCH': 4000000, #4MB
 }
 
 def get_config():
