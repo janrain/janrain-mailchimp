@@ -68,6 +68,8 @@ DynamoDB development](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-g
 
 - `JANRAIN_FULL_EXPORT`: If `True` ignore `JANRAIN_MAX_LASTUPDATED` and export everything. (default: `False`)
 
+- `JANRAIN_OPT_IN_ATTRIBUTE`: The Attribute to use to opt-in each user. (default: `list_optIn_status`)
+
 #### MailChimp
 
 - `MC_URI_TEMPLATE`: Template used to create MailChimp API URI.

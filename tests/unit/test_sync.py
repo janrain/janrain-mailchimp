@@ -85,6 +85,7 @@ class test_capture_batch_generator(unittest.TestCase):
             'JANRAIN_CLIENT_SECRET': sentinel.janrain_client_secret,
             'JANRAIN_BATCH_SIZE': sentinel.janrain_batch_size,
             'JANRAIN_SCHEMA_NAME': sentinel.janrain_schema_name,
+            'JANRAIN_OPT_IN_ATTRIBUTE': sentinel.janrain_opt_in_attribute,
             'JANRAIN_FULL_EXPORT': True,
             'FIELD_MAPPING': {},
         }
@@ -103,6 +104,7 @@ class test_capture_batch_generator(unittest.TestCase):
             'JANRAIN_CLIENT_SECRET': sentinel.janrain_client_secret,
             'JANRAIN_BATCH_SIZE': sentinel.janrain_batch_size,
             'JANRAIN_SCHEMA_NAME': sentinel.janrain_schema_name,
+            'JANRAIN_OPT_IN_ATTRIBUTE': sentinel.janrain_opt_in_attribute,
             'JANRAIN_FULL_EXPORT': True,
             'FIELD_MAPPING': {},
         }
@@ -125,6 +127,7 @@ class test_capture_batch_generator(unittest.TestCase):
             'JANRAIN_CLIENT_SECRET': sentinel.janrain_client_secret,
             'JANRAIN_BATCH_SIZE': 1,
             'JANRAIN_SCHEMA_NAME': sentinel.janrain_schema_name,
+            'JANRAIN_OPT_IN_ATTRIBUTE': sentinel.janrain_opt_in_attribute,
             'JANRAIN_FULL_EXPORT': True,
             'FIELD_MAPPING': {},
         }
@@ -179,6 +182,7 @@ class test_mailchimp_build_batch_operation(unittest.TestCase):
     def test_no_merge_fields(self, json_dumps, md5):
         config = {
             'MC_LIST_ID': sentinel.mc_list_id,
+            'JANRAIN_OPT_IN_ATTRIBUTE': sentinel.janrain_opt_in_attribute,
             'FIELD_MAPPING': {},
         }
         record = {
@@ -201,6 +205,7 @@ class test_mailchimp_build_batch_operation(unittest.TestCase):
     def test_with_merge_fields(self, json_dumps, md5):
         config = {
             'MC_LIST_ID': sentinel.mc_list_id,
+            'JANRAIN_OPT_IN_ATTRIBUTE': sentinel.janrain_opt_in_attribute,
             'FIELD_MAPPING': {
                 'janrain_a': 'mc_a',
                 'janrain_b': 'mc_b',

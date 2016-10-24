@@ -63,7 +63,7 @@ def capture_batch_generator(config, logger, job):
 
     kwargs = {
         'batch_size': batch_size,
-        'attributes': ['email', 'uuid', 'lastUpdated', 'list_optIn_status'] + list(config["FIELD_MAPPING"]),
+        'attributes': ['email', 'uuid', 'lastUpdated', config['JANRAIN_OPT_IN_ATTRIBUTE']] + list(config["FIELD_MAPPING"]),
         'filtering': "lastUpdated > '{}'".format(toRecordDateTime(lastUpdated))
     }
 
@@ -89,7 +89,7 @@ def capture_batch_generator(config, logger, job):
 
 def mailchimp_build_batch_operation(config, record, ):
     email_md5 = hashlib.md5(record['email'].encode()).hexdigest()
-    list_optIn_status = record.get('list_optIn_status', True)
+    list_optIn_status = bool(record.get(config['JANRAIN_OPT_IN_ATTRIBUTE'], True))
     status = 'subscribed' if list_optIn_status else 'unsubscribed'
     return {
         "method": "PUT",
