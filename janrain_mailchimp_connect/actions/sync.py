@@ -54,7 +54,9 @@ def capture_batch_generator(config, logger, job):
     """grab records from capture and put them in sqs"""
     batch_size = config['JANRAIN_BATCH_SIZE']
 
-    lastUpdated = job.lastUpdated or datetime.utcfromtimestamp(0)
+    lastUpdated =  datetime.utcfromtimestamp(0)
+    if not config['JANRAIN_FULL_EXPORT'] and job.lastUpdated:
+        lastUpdated = job.lastUpdated
 
     if not config['JANRAIN_FULL_EXPORT'] and (datetime.now()-lastUpdated).days > config['JANRAIN_MAX_LASTUPDATED']:
         exit(logger, "LastUpdated too many days ago {} > {}".format((datetime.now()-lastUpdated).days, config['JANRAIN_MAX_LASTUPDATED']))
