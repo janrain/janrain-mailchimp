@@ -35,22 +35,22 @@ class test__sync(unittest.TestCase):
 
     @patch('janrain_mailchimp_connect.actions.sync.time.sleep', autospec=True, spec_set=True)
     @patch('janrain_mailchimp_connect.actions.sync.send_batch_to_mailchimp', autospec=True, spec_set=True)
-    @patch('janrain_mailchimp_connect.actions.sync.isMailchimpBatchFinished', autospec=True, spec_set=True)
+    @patch('janrain_mailchimp_connect.actions.sync.is_mailchimp_batch_finished', autospec=True, spec_set=True)
     @patch('janrain_mailchimp_connect.actions.sync.capture_batch_generator', autospec=True, spec_set=True)
-    def test(self, capture_batch_generator, isMailchimpBatchFinished, send_batch_to_mailchimp, sleep):
+    def test(self, capture_batch_generator, is_mailchimp_batch_finished, send_batch_to_mailchimp, sleep):
         job = Mock()
         logger = Mock()
         config = MagicMock()
         capture_batch_generator.return_value = [
             sentinel.capture_batch_1, sentinel.capture_batch_2,
         ]
-        isMailchimpBatchFinished.side_effect = [
+        is_mailchimp_batch_finished.side_effect = [
             False, True, True,
         ]
 
         self.assertIsNone(_sync(config, logger, job))
         job.start.assert_called_once_with()
-        isMailchimpBatchFinished.assert_has_calls([
+        is_mailchimp_batch_finished.assert_has_calls([
             call(config, logger, send_batch_to_mailchimp(config, logger, sentinel.capture_batch_1)),
             call(config, logger, send_batch_to_mailchimp(config, logger, sentinel.capture_batch_1)),
             call(config, logger, send_batch_to_mailchimp(config, logger, sentinel.capture_batch_2)),
@@ -168,7 +168,7 @@ class test_isMailChimpBatchFinished(unittest.TestCase):
         config = MagicMock()
         batch = MagicMock()
 
-        actual = isMailchimpBatchFinished(config, self.logger, batch)
+        actual = is_mailchimp_batch_finished(config, self.logger, batch)
 
         self.assertTrue(actual)
         self.mailchimp_endpoint.assert_called_once_with(config, "/batches/{}".format(batch.get()))
