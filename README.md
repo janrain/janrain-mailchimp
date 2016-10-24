@@ -1,5 +1,14 @@
 # janrain-mailchimp
 
+[![Build Status](https://travis-ci.com/janrain/janrain-mailchimp.svg?token=Hm8PR6HHS4tNshzYYwWD&branch=master)](https://travis-ci.com/janrain/janrain-mailchimp)
+[![Coverage Status](https://coveralls.io/repos/github/janrain/janrain-mailchimp/badge.svg?branch=master&t=34YIdv)](https://coveralls.io/github/janrain/janrain-mailchimp?branch=master)
+
+## Overview
+
+MailChimp is a cloud-based Email System. This services provides an `/sync` endpoint which when POSTed to instructs the service to transfer new records from Janrain to a MailChimp List via HTTP calls. The intent is to have a time based service, such as a CRON job, trigger the export by POSTing to the `/sync` endpoint. The service is designed to be deployed in an AWS Elastic Beanstalk Application and is configured via environment variables.
+
+If problems arise during the process of pushing data into MailChimp you can look at the log file for visibility, open a Github Issue or contact Janrain Support (https://support.janrain.com).
+
 ## Configuration
 
 ### Primary
