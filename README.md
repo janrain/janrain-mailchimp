@@ -32,6 +32,8 @@ If problems arise during the process of pushing data into MailChimp you can look
 - `JANRAIN_SCHEMA_NAME`: Name of the Capture schema containing the user records.
 (default: `user`)
 
+- `JANRAIN_OPT_IN_ATTRIBUTE`: The Attribute to use to opt-in each user. (default: `list_optIn_status`)
+
 #### MailChimp
 
 - `MC_API_KEY`: MailChimp API Key
@@ -76,8 +78,6 @@ DynamoDB development](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-g
 - `JANRAIN_MAX_LASTUPDATED`: Number of Days the lastUpdated cannot exceed. (default: `1`)
 
 - `JANRAIN_FULL_EXPORT`: If `True` ignore `JANRAIN_MAX_LASTUPDATED` and export everything. (default: `False`)
-
-- `JANRAIN_OPT_IN_ATTRIBUTE`: The Attribute to use to opt-in each user. (default: `list_optIn_status`)
 
 #### MailChimp
 

@@ -96,7 +96,7 @@ def mailchimp_build_batch_operation(config, record):
     https://developer.mailchimp.com/documentation/mailchimp/reference/batches/#read-get_batches_batch_id
     """
     email_md5 = hashlib.md5(record['email'].encode()).hexdigest()
-    janrain_status = bool(record.get(config['JANRAIN_OPT_IN_ATTRIBUTE'], True))
+    janrain_status = bool(record.get(config['JANRAIN_OPT_IN_ATTRIBUTE'], False))
     status = 'subscribed' if janrain_status else 'unsubscribed'
     return {
         "method": "PUT",

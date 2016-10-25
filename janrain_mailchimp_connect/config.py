@@ -25,7 +25,7 @@ ENV_VARS = {
     'JANRAIN_BATCH_SIZE': 100,
     'JANRAIN_MAX_LASTUPDATED': 1,
     'JANRAIN_FULL_EXPORT': False,
-    'JANRAIN_OPT_IN_ATTRIBUTE': 'list_optIn_status',
+    'JANRAIN_OPT_IN_ATTRIBUTE': '',
 
     'FIELD_MAPPING':{'familyName': "LNAME", "givenName": "FNAME", 'birthday': 'BIRTHDAY'},
 
