@@ -14,8 +14,8 @@ ENV_VARS = {
 
     'AWS_ACCESS_KEY_ID': '',
     'AWS_SECRET_ACCESS_KEY': '',
-    'AWS_DEFAULT_REGION': 'us-west-2',
-    'AWS_DYNAMODB_URL': 'http://localhost:8000',
+    'AWS_DEFAULT_REGION': '',
+    'AWS_DYNAMODB_URL': None,
     'AWS_DYNAMODB_TABLE': 'janrain-mailchimp',
 
     'JANRAIN_URI': '',
