@@ -13,7 +13,7 @@ If problems arise during the process of pushing data into MailChimp you can look
 
 ### Primary
 
-- `FIELD_MAPPING`: A JSON string which maps janrain attribute to MailChimp List Fields.
+- `FIELD_MAPPING`: A JSON string which maps janrain attribute to MailChimp List Fields. (defaul: `{'familyName': "LNAME", "givenName": "FNAME", 'birthday': 'BIRTHDAY'}`)
 
 #### AWS
 
@@ -32,7 +32,7 @@ If problems arise during the process of pushing data into MailChimp you can look
 - `JANRAIN_SCHEMA_NAME`: Name of the Capture schema containing the user records.
 (default: `user`)
 
-- `JANRAIN_OPT_IN_ATTRIBUTE`: The Attribute to use to opt-in each user. (default: `list_optIn_status`)
+- `JANRAIN_OPT_IN_ATTRIBUTE`: The Attribute to use to opt-in each user.
 
 #### MailChimp
 
@@ -73,7 +73,7 @@ DynamoDB development](http://docs.aws.amazon.com/cli/latest/userguide/cli-chap-g
 
 #### Janrain
 
-- `JANRAIN_BATCH_SIZE`: The size of batch for each Janrain Capture Call.
+- `JANRAIN_BATCH_SIZE`: The size of batch for each Janrain Capture Call. (default: `100`)
 
 - `JANRAIN_MAX_LASTUPDATED`: Number of Days the lastUpdated cannot exceed. (default: `1`)
 
