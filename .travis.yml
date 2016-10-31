@@ -12,7 +12,7 @@ deploy:
   region: us-east-1
   app: janrain-mailchimp
   env: mailchimp-beanstalk-nyyimby-prod-va
-  bucket_name: elasticbeanstalk-us-east-1-882324420608
+  bucket_name: elasticbeanstalk-us-east-1-732494919496
   bucket_path: travis-janrain-mailchimp
   skip_cleanup: true
   on:
