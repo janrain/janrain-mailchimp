@@ -33,15 +33,20 @@ def _sync(config, logger, job):
     job.start()
     total_batch_num = 0
     logger.info("Job started at {}".format(job.started))
-    for capture_batch in capture_batch_generator(config, logger, job):
-        mailchimp_batch = send_batch_to_mailchimp(config, logger, capture_batch)
-        logger.info("MailChimp Batch: {} Started".format(mailchimp_batch['id']))
-        while not is_mailchimp_batch_finished(config, logger, mailchimp_batch):
-            logger.info("MailChimp Batch: {} Not Finished".format(mailchimp_batch['id']))
-            logger.debug('Sleeping %d seconds', config['MC_TIME_BETWEEN_BATCHES'])
-            time.sleep(config['MC_TIME_BETWEEN_BATCHES'])
-        logger.info("MailChimp Batch: {} Finished".format(mailchimp_batch['id']))
-        total_batch_num += 1
+    try:
+        for capture_batch in capture_batch_generator(config, logger, job):
+            mailchimp_batch = send_batch_to_mailchimp(config, logger, capture_batch)
+            logger.info("MailChimp Batch: {} Started".format(mailchimp_batch['id']))
+            while not is_mailchimp_batch_finished(config, logger, mailchimp_batch):
+                logger.info("MailChimp Batch: {} Not Finished".format(mailchimp_batch['id']))
+                logger.debug('Sleeping %d seconds', config['MC_TIME_BETWEEN_BATCHES'])
+                time.sleep(config['MC_TIME_BETWEEN_BATCHES'])
+            logger.info("MailChimp Batch: {} Finished".format(mailchimp_batch['id']))
+            total_batch_num += 1
+    except Exception as ex:
+        logger.error(str(ex))
+        if config['DEBUG']:
+            logger.exception(ex)
     job.stop()
     logger.info("Job ended at: {}".format(job.ended))
 
@@ -73,27 +78,22 @@ def capture_batch_generator(config, logger, job):
     }
 
     logger.info("Export Started")
-    try:
-        batch = []
-        total_record_num = 0
-        capture_app = janrain_datalib.get_app(config['JANRAIN_URI'], config['JANRAIN_CLIENT_ID'], config['JANRAIN_CLIENT_SECRET'])
-        for record_num, record in enumerate(capture_app.get_schema(config['JANRAIN_SCHEMA_NAME']).records.iterator(**kwargs), start=1):
-            logger.debug("fetched record: %d, uuid: %s", record_num, record.get('uuid', "unknown"))
-            batch.append(record)
-            total_record_num +=1
-            if len(batch) == config['JANRAIN_BATCH_SIZE']:
-                yield batch
-                job.lastUpdated = fromRecordDateTime(batch[-1]['lastUpdated'])
-                batch = []
-        if len(batch):
+    batch = []
+    total_record_num = 0
+    capture_app = janrain_datalib.get_app(config['JANRAIN_URI'], config['JANRAIN_CLIENT_ID'], config['JANRAIN_CLIENT_SECRET'])
+    for record_num, record in enumerate(capture_app.get_schema(config['JANRAIN_SCHEMA_NAME']).records.iterator(**kwargs), start=1):
+        logger.debug("fetched record: %d, uuid: %s", record_num, record.get('uuid', "unknown"))
+        batch.append(record)
+        total_record_num +=1
+        if len(batch) == config['JANRAIN_BATCH_SIZE']:
             yield batch
             job.lastUpdated = fromRecordDateTime(batch[-1]['lastUpdated'])
+            batch = []
+    if len(batch):
+        yield batch
+        job.lastUpdated = fromRecordDateTime(batch[-1]['lastUpdated'])
 
-        logger.info("Export Finished, Total records fetched: %d", total_record_num)
-    except Exception as ex:
-        logger.error(str(ex))
-        if config['DEBUG']:
-            logger.exception(ex)
+    logger.info("Export Finished, Total records fetched: %d", total_record_num)
 
 def mailchimp_build_batch_operation(config, record):
     """ Builds the MailChimp batch operation.

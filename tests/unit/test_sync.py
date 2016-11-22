@@ -60,6 +60,19 @@ class test__sync(unittest.TestCase):
         ])
         job.stop.assert_called_once_with()
 
+    @patch('janrain_mailchimp_connect.actions.sync.time.sleep', autospec=True, spec_set=True)
+    @patch('janrain_mailchimp_connect.actions.sync.send_batch_to_mailchimp', autospec=True, spec_set=True)
+    @patch('janrain_mailchimp_connect.actions.sync.is_mailchimp_batch_finished', autospec=True, spec_set=True)
+    @patch('janrain_mailchimp_connect.actions.sync.capture_batch_generator', autospec=True, spec_set=True)
+    def test_exception(self, capture_batch_generator, is_mailchimp_batch_finished, send_batch_to_mailchimp, sleep):
+        job = Mock()
+        self.logger = Mock()
+        self.logger.error = Mock()
+        config = MagicMock()
+        capture_batch_generator.side_effect = Exception()
+        _sync(config, self.logger, job)
+        self.assertTrue(self.logger.error.called)
+
 class test_capture_batch_generator(unittest.TestCase):
 
     def setUp(self):
