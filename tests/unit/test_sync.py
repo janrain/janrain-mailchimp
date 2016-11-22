@@ -60,6 +60,19 @@ class test__sync(unittest.TestCase):
         ])
         job.stop.assert_called_once_with()
 
+    @patch('janrain_mailchimp_connect.actions.sync.time.sleep', autospec=True, spec_set=True)
+    @patch('janrain_mailchimp_connect.actions.sync.send_batch_to_mailchimp', autospec=True, spec_set=True)
+    @patch('janrain_mailchimp_connect.actions.sync.is_mailchimp_batch_finished', autospec=True, spec_set=True)
+    @patch('janrain_mailchimp_connect.actions.sync.capture_batch_generator', autospec=True, spec_set=True)
+    def test_exception(self, capture_batch_generator, is_mailchimp_batch_finished, send_batch_to_mailchimp, sleep):
+        job = Mock()
+        self.logger = Mock()
+        self.logger.error = Mock()
+        config = MagicMock()
+        capture_batch_generator.side_effect = Exception()
+        _sync(config, self.logger, job)
+        self.assertTrue(self.logger.error.called)
+
 class test_capture_batch_generator(unittest.TestCase):
 
     def setUp(self):
@@ -144,24 +157,6 @@ class test_capture_batch_generator(unittest.TestCase):
             sentinel.janrain_uri,
             sentinel.janrain_client_id,
             sentinel.janrain_client_secret)
-
-    # def test_3_record_exception(self):
-    #     config = {
-    #         'JANRAIN_URI': sentinel.janrain_uri,
-    #         'JANRAIN_CLIENT_ID': sentinel.janrain_client_id,
-    #         'JANRAIN_CLIENT_SECRET': sentinel.janrain_client_secret,
-    #         'JANRAIN_BATCH_SIZE': 1,
-    #         'JANRAIN_SCHEMA_NAME': sentinel.janrain_schema_name,
-    #         'JANRAIN_OPT_IN_ATTRIBUTE': sentinel.janrain_opt_in_attribute,
-    #         'JANRAIN_FULL_EXPORT': True,
-    #         'FIELD_MAPPING': {},
-    #         'DEBUG': True,
-    #     }
-    #     self.logger.error = Mock()
-    #     self.datalib_schema.records.iterator.side_effect = Exception()
-    #     list(capture_batch_generator(config, self.logger, self.job))
-    #     self.logger.error.called_once()
-    #
 
 class test_isMailChimpBatchFinished(unittest.TestCase):
     def setUp(self):
