@@ -37,7 +37,7 @@ ENV_VARS = {
     'MC_MAX_BYTES_IN_BATCH': 4000000, #4MB
 }
 
-def get_config():
+def get_config(logger=None):
     config = {}
     for key, default_value in ENV_VARS.items():
         value = os.getenv(key, '')
@@ -57,7 +57,9 @@ def get_config():
         elif isinstance(ENV_VARS[key], dict):
             try:
                 value = json.loads(value)
-            except ValueError:
+            except ValueError as exception:
+                if logger:
+                    logger.warning("Could not parse {}: {}".format(key, exception))
                 value = default_value
 
         config[key] = value
