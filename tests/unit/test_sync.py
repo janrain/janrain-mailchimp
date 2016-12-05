@@ -195,7 +195,7 @@ class test_mailchimp_build_batch_operation(unittest.TestCase):
     def test_no_merge_fields(self, json_dumps, md5):
         config = {
             'MC_LIST_ID': sentinel.mc_list_id,
-            'JANRAIN_OPT_IN_ATTRIBUTE': sentinel.janrain_opt_in_attribute,
+            'JANRAIN_OPT_IN_ATTRIBUTE': 'a',
             'FIELD_MAPPING': {},
         }
         record = {
@@ -218,7 +218,7 @@ class test_mailchimp_build_batch_operation(unittest.TestCase):
     def test_with_merge_fields(self, json_dumps, md5):
         config = {
             'MC_LIST_ID': sentinel.mc_list_id,
-            'JANRAIN_OPT_IN_ATTRIBUTE': sentinel.janrain_opt_in_attribute,
+            'JANRAIN_OPT_IN_ATTRIBUTE': 'a',
             'FIELD_MAPPING': {
                 'janrain_a': 'mc_a',
                 'janrain_b': 'mc_b',

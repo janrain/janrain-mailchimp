@@ -7,7 +7,10 @@ config = get_config()
 executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 # must be named application for beanstalk to find it automatically
 application = create_app(config, JobModel, executor)
-logging_init(application)
+logger = logging_init(application)
+
+# XXX This is hacky. Get the config again after we have a logger to log the errors if any
+get_config(logger)
 
 if __name__ == '__main__':
     application.run()

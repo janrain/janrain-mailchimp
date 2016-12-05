@@ -7,6 +7,8 @@ import logging
 import requests
 import time
 import sys
+import operator
+from functools import reduce
 from urllib.parse import urljoin
 from datetime import datetime
 from ..date_utils import toRecordDateTime, fromRecordDateTime
@@ -100,7 +102,7 @@ def mailchimp_build_batch_operation(config, record):
     https://developer.mailchimp.com/documentation/mailchimp/reference/batches/#read-get_batches_batch_id
     """
     email_md5 = hashlib.md5(record['email'].encode()).hexdigest()
-    janrain_status = bool(record.get(config['JANRAIN_OPT_IN_ATTRIBUTE'], False))
+    janrain_status = getByPath(record, config['JANRAIN_OPT_IN_ATTRIBUTE'], False)
     status = 'subscribed' if janrain_status else 'unsubscribed'
     return {
         "method": "PUT",
@@ -159,3 +161,9 @@ def mailchimp_endpoint(config, path=None):
 def exit(logger, message):
     logger.error(message)
     raise SystemExit(message)
+
+def getByPath(dict, path, default=None):
+    try:
+        return reduce(operator.getitem, path.split('.'), dict)
+    except KeyError:
+        return default

@@ -52,4 +52,4 @@ def logging_init(app):
   logger.addHandler(handler)
   logger.setLevel(logging.DEBUG)
 
-  return handler
+  return logger

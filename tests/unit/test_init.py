@@ -56,11 +56,11 @@ class logging_init_test(TestCase):
     def test_production(self):
 
         self.app.debug = False
-        handler = logging_init(self.app)
-        self.assertEqual(handler.level, logging.INFO)
+        logger = logging_init(self.app)
+        self.assertEqual(logger.handlers[1].level, logging.INFO)
 
     def test_debug(self):
 
         self.app.debug = True
-        handler = logging_init(self.app)
-        self.assertEqual(handler.level, logging.DEBUG)
+        logger = logging_init(self.app)
+        self.assertEqual(logger.handlers[0].level, logging.DEBUG)
