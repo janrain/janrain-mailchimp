@@ -49,8 +49,9 @@ def _sync(config, logger, job):
         logger.error(str(ex))
         if config['DEBUG']:
             logger.exception(ex)
-    job.stop()
-    logger.info("Job ended at: {}".format(job.ended))
+    else:
+        job.stop()
+        logger.info("Job ended at: {}".format(job.ended))
 
 def is_mailchimp_batch_finished(config, logger, mailchimp_batch):
     """ Uses MailChimp's APIs to check if the batch has Finished.
@@ -69,6 +70,8 @@ def capture_batch_generator(config, logger, job):
     lastUpdated = datetime.utcfromtimestamp(0)
     if not config['JANRAIN_FULL_EXPORT'] and job.lastUpdated:
         lastUpdated = job.lastUpdated
+
+    logger.debug("lastUpdated = {}".format(lastUpdated))
 
     if not config['JANRAIN_FULL_EXPORT'] and (datetime.now()-lastUpdated).days > config['JANRAIN_MAX_LASTUPDATED']:
         exit(logger, "LastUpdated too many days ago {} > {}".format((datetime.now()-lastUpdated).days, config['JANRAIN_MAX_LASTUPDATED']))
@@ -89,13 +92,11 @@ def capture_batch_generator(config, logger, job):
         total_record_num +=1
         if len(batch) == config['JANRAIN_BATCH_SIZE']:
             yield batch
-            job.lastUpdated = fromRecordDateTime(batch[-1]['lastUpdated'])
             batch = []
     if len(batch):
         yield batch
-        job.lastUpdated = fromRecordDateTime(batch[-1]['lastUpdated'])
 
-    logger.info("Export Finished, Total records fetched: %d", total_record_num)
+    logger.info("Export Finished, Total records fetched: {}".format(total_record_num))
 
 def mailchimp_build_batch_operation(config, record):
     """ Builds the MailChimp batch operation.

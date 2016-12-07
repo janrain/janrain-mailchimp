@@ -43,6 +43,7 @@ class JobModel(pynamodb.models.Model):
     def stop(self):
         """Stop the job."""
         self._ended = toModelDateTime(datetime.now())
+        self.lastUpdated = self.started
         self.save()
 
     @property
