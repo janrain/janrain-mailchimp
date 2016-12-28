@@ -101,6 +101,7 @@ class test_capture_batch_generator(unittest.TestCase):
             'JANRAIN_OPT_IN_ATTRIBUTE': sentinel.janrain_opt_in_attribute,
             'JANRAIN_FULL_EXPORT': True,
             'FIELD_MAPPING': {},
+            'INTERESTS_OPT_IN_ATTRIBUTES_MAPPING': {},
         }
         self.datalib_schema.records.iterator.return_value = []
         generator = capture_batch_generator(config, self.logger, self.job)
@@ -120,6 +121,7 @@ class test_capture_batch_generator(unittest.TestCase):
             'JANRAIN_OPT_IN_ATTRIBUTE': sentinel.janrain_opt_in_attribute,
             'JANRAIN_FULL_EXPORT': True,
             'FIELD_MAPPING': {},
+            'INTERESTS_OPT_IN_ATTRIBUTES_MAPPING': {},
         }
         self.datalib_schema.records.iterator.return_value = [
             { 'uuid': sentinel.uuid_1, 'lastUpdated': sentinel.lastUpdated_1 },
@@ -143,6 +145,7 @@ class test_capture_batch_generator(unittest.TestCase):
             'JANRAIN_OPT_IN_ATTRIBUTE': sentinel.janrain_opt_in_attribute,
             'JANRAIN_FULL_EXPORT': True,
             'FIELD_MAPPING': {},
+            'INTERESTS_OPT_IN_ATTRIBUTES_MAPPING': {},
         }
         self.datalib_schema.records.iterator.return_value = [
             { 'uuid': sentinel.uuid_1, 'lastUpdated': sentinel.lastUpdated_1 },
@@ -191,12 +194,12 @@ class test_isMailChimpBatchFinished(unittest.TestCase):
 class test_mailchimp_build_batch_operation(unittest.TestCase):
 
     @patch('janrain_mailchimp_connect.actions.sync.hashlib.md5', autospec=True, spec_set=True)
-    @patch('janrain_mailchimp_connect.actions.sync.json.dumps', autospec=True, spec_set=True)
-    def test_no_merge_fields(self, json_dumps, md5):
+    def test_basic(self, md5):
         config = {
             'MC_LIST_ID': sentinel.mc_list_id,
             'JANRAIN_OPT_IN_ATTRIBUTE': 'a',
             'FIELD_MAPPING': {},
+            'INTERESTS_OPT_IN_ATTRIBUTES_MAPPING': {},
         }
         record = {
             'email': 'abc@example.com',
@@ -204,18 +207,75 @@ class test_mailchimp_build_batch_operation(unittest.TestCase):
         expected = {
             'method': 'PUT',
             'path': 'lists/{}/members/{}'.format(config['MC_LIST_ID'], md5(record['email']).hexdigest()),
-            'body': json_dumps({
+            'body': json.dumps({
                 'email_address': record['email'],
-                'status_if_new': 'subscribed',
-                'merge_fields': {}
+                'status': 'unsubscribed',
+                'status_if_new': 'unsubscribed',
+                'merge_fields': {},
+                'interests': {},
             })
         }
         actual = mailchimp_build_batch_operation(config, record)
-        self.assertEqual(expected, actual)
+        self.assertDictEqual(expected, actual)
 
     @patch('janrain_mailchimp_connect.actions.sync.hashlib.md5', autospec=True, spec_set=True)
-    @patch('janrain_mailchimp_connect.actions.sync.json.dumps', autospec=True, spec_set=True)
-    def test_with_merge_fields(self, json_dumps, md5):
+    def test_optIn_true(self, md5):
+        config = {
+            'MC_LIST_ID': sentinel.mc_list_id,
+            'JANRAIN_OPT_IN_ATTRIBUTE': 'optIn.a',
+            'FIELD_MAPPING': {},
+            'INTERESTS_OPT_IN_ATTRIBUTES_MAPPING': {},
+        }
+        record = {
+            'email': 'abc@example.com',
+            'optIn': {
+                'a': True
+            }
+        }
+        expected = {
+            'method': 'PUT',
+            'path': 'lists/{}/members/{}'.format(config['MC_LIST_ID'], md5(record['email']).hexdigest()),
+            'body': json.dumps({
+                'email_address': record['email'],
+                'status': 'subscribed',
+                'status_if_new': 'subscribed',
+                'merge_fields': {},
+                'interests': {},
+            })
+        }
+        actual = mailchimp_build_batch_operation(config, record)
+        self.assertDictEqual(expected, actual)
+
+    @patch('janrain_mailchimp_connect.actions.sync.hashlib.md5', autospec=True, spec_set=True)
+    def test_optIn_false(self, md5):
+        config = {
+            'MC_LIST_ID': sentinel.mc_list_id,
+            'JANRAIN_OPT_IN_ATTRIBUTE': 'optIn.a',
+            'FIELD_MAPPING': {},
+            'INTERESTS_OPT_IN_ATTRIBUTES_MAPPING': {},
+        }
+        record = {
+            'email': 'abc@example.com',
+            'optIn': {
+                'a': False
+            }
+        }
+        expected = {
+            'method': 'PUT',
+            'path': 'lists/{}/members/{}'.format(config['MC_LIST_ID'], md5(record['email']).hexdigest()),
+            'body': json.dumps({
+                'email_address': record['email'],
+                'status': 'unsubscribed',
+                'status_if_new': 'unsubscribed',
+                'merge_fields': {},
+                'interests': {},
+            })
+        }
+        actual = mailchimp_build_batch_operation(config, record)
+        self.assertDictEqual(expected, actual)
+
+    @patch('janrain_mailchimp_connect.actions.sync.hashlib.md5', autospec=True, spec_set=True)
+    def test_with_merge_fields(self, md5):
         config = {
             'MC_LIST_ID': sentinel.mc_list_id,
             'JANRAIN_OPT_IN_ATTRIBUTE': 'a',
@@ -223,26 +283,64 @@ class test_mailchimp_build_batch_operation(unittest.TestCase):
                 'janrain_a': 'mc_a',
                 'janrain_b': 'mc_b',
             },
+            'INTERESTS_OPT_IN_ATTRIBUTES_MAPPING': {},
         }
         record = {
             'email': 'abc@example.com',
-            'janrain_a': sentinel.janrain_a,
-            'janrain_b': sentinel.janrain_b,
+            'janrain_a': str(sentinel.janrain_a),
+            'janrain_b': str(sentinel.janrain_b),
         }
         expected = {
             'method': 'PUT',
             'path': 'lists/{}/members/{}'.format(config['MC_LIST_ID'], md5(record['email']).hexdigest()),
-            'body': json_dumps({
+            'body': json.dumps({
                 'email_address': record['email'],
-                'status_if_new': 'subscribed',
+                'status': 'unsubscribed',
+                'status_if_new': 'unsubscribed',
                 'merge_fields': {
-                    'mc_a': sentinel.janrain_a,
-                    'mc_b': sentinel.janrain_b,
-                }
+                    'mc_a': str(sentinel.janrain_a),
+                    'mc_b': str(sentinel.janrain_b),
+                },
+                'interests': {},
             })
         }
         actual = mailchimp_build_batch_operation(config, record)
-        self.assertEqual(expected, actual)
+        self.assertDictEqual(expected, actual)
+
+    @patch('janrain_mailchimp_connect.actions.sync.hashlib.md5', autospec=True, spec_set=True)
+    def test_with_interests(self, md5):
+        config = {
+            'MC_LIST_ID': sentinel.mc_list_id,
+            'JANRAIN_OPT_IN_ATTRIBUTE': 'a',
+            'FIELD_MAPPING': {},
+            'INTERESTS_OPT_IN_ATTRIBUTES_MAPPING': {
+                str(sentinel.interest_id_1): 'optIn.a',
+                str(sentinel.interest_id_2): 'optIn.b',
+            },
+        }
+        record = {
+            'email': 'abc@example.com',
+            'optIn': {
+                'a': True,
+                'b': False,
+            }
+        }
+        expected = {
+            'method': 'PUT',
+            'path': 'lists/{}/members/{}'.format(config['MC_LIST_ID'], md5(record['email']).hexdigest()),
+            'body': json.dumps({
+                'email_address': record['email'],
+                'status': 'unsubscribed',
+                'status_if_new': 'unsubscribed',
+                'merge_fields': {},
+                'interests': {
+                    str(sentinel.interest_id_1): True,
+                    str(sentinel.interest_id_2): False,
+                },
+            })
+        }
+        actual = mailchimp_build_batch_operation(config, record)
+        self.assertDictEqual(expected, actual)
 
 class test_mailchimp_build_batch(unittest.TestCase):
 
