@@ -11,9 +11,19 @@ If problems arise during the process of pushing data into MailChimp you can look
 
 ## Configuration
 
+Run `./bin/mailchimp-info` to get a list of Mailchimp Lists, Merge Fields, Interest Categories and Interests.
+
+```
+./bin/mailchimp-info
+usage: mailchimp-info [-h] --key KEY
+mailchimp-info: error: the following arguments are required: --key
+```
+
 ### Primary
 
 - `FIELD_MAPPING`: A JSON string which maps janrain attribute to MailChimp List Fields. (defaul: `{'familyName': "LNAME", "givenName": "FNAME", 'birthday': 'BIRTHDAY'}`)
+
+- `INTERESTS_OPT_IN_ATTRIBUTES_MAPPING`: A JSON string which maps MailChimp Interests IDs to Janrain Attributes. (example: `{"6585d151f0": "optIn.morning", "faec5e7471": "optIn.evening"}`, defaul: `{}`)
 
 #### AWS
 

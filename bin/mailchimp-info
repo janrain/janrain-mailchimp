@@ -1,0 +1,65 @@
+#!/usr/bin/env python
+# This is writen for Python 3+
+
+import argparse
+import requests
+import json
+import functools
+from urllib.parse import urljoin
+
+from janrain_mailchimp_connect.actions.sync import mailchimp_endpoint
+from janrain_mailchimp_connect.config import get_config
+
+def main():
+    args = parse_args()
+    key = args.key
+
+    print("LISTS:")
+    for mc_list in mailchimpLists(key):
+        print('* Name: {}, ID: {}'.format(mc_list['name'], mc_list['id']))
+        print("  MERGE FIELDS:")
+        for mc_mergefield in mailchimpMergeFields(key, mc_list['id']):
+            print('  *  Name: {}, Tag: {}, Type: {}'.format(mc_mergefield['name'], mc_mergefield['tag'], mc_mergefield['type']))
+        print("  INTEREST GROUPS:")
+        for mc_interestCategory in mailchimpInterestCategories(key, mc_list['id']):
+            print('  *  Title: {}, ID: {}'.format(mc_interestCategory['title'], mc_interestCategory['id']))
+            print("    INTERESTS:")
+            for mc_interest in mailchimpInterests(key, mc_list['id'], mc_interestCategory['id']):
+                print('    * Name: {}, ID: {}'.format(mc_interest['name'], mc_interest['id']))
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--key', dest='key', help='MailChimp API Key', required=True)
+    return parser.parse_args()
+
+def mailchimp_endpoint(key, path=None):
+    """ Builds the MailChimp endpoint
+    http://developer.mailchimp.com/documentation/mailchimp/guides/get-started-with-mailchimp-api-3/ 
+    """
+    data_center= key.split('-')[-1]
+    base_endpoint = 'https://{data_center}.api.mailchimp.com/3.0/'.format(data_center=data_center)
+    if path is None:
+        return base_endpoint
+    else:
+        return urljoin(base_endpoint, path.lstrip('/'))
+
+def mailchimpGet(key, path):
+    endpoint = mailchimp_endpoint(key, path)
+    result = requests.get(endpoint, auth=("janrain-mailchimp", key))
+    return result.json()
+
+def mailchimpLists(key):
+    return mailchimpGet(key, 'lists')['lists']
+
+def mailchimpMergeFields(key, list_id):
+    return mailchimpGet(key, 'lists/{}/merge-fields'.format(list_id))['merge_fields']
+
+def mailchimpInterestCategories(key, list_id):
+    return mailchimpGet(key, 'lists/{}/interest-categories'.format(list_id))['categories']
+
+def mailchimpInterests(key, list_id, interest_category_id):
+    return mailchimpGet(key, 'lists/{}/interest-categories/{}/interests'.format(list_id, interest_category_id))['interests']
+
+
+if __name__ == '__main__':
+    main()

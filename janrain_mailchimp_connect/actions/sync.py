@@ -78,7 +78,9 @@ def capture_batch_generator(config, logger, job):
 
     kwargs = {
         'batch_size': batch_size,
-        'attributes': ['email', 'uuid', 'lastUpdated', config['JANRAIN_OPT_IN_ATTRIBUTE']] + list(config["FIELD_MAPPING"]),
+        'attributes': list({'email', 'uuid', 'lastUpdated', config['JANRAIN_OPT_IN_ATTRIBUTE']}
+                | set(config["FIELD_MAPPING"])
+                | set(config['INTERESTS_OPT_IN_ATTRIBUTES_MAPPING'].values())),
         'filtering': "lastUpdated > '{}'".format(toRecordDateTime(lastUpdated))
     }
 
@@ -113,10 +115,15 @@ def mailchimp_build_batch_operation(config, record):
             "status": status,
             "status_if_new": status,
             "merge_fields": {
-                mc_field_label: record.get(janrain_attribute)
+                mc_field_label: getByPath(record, janrain_attribute)
                 for (janrain_attribute, mc_field_label)
                 in config["FIELD_MAPPING"].items()
-            }
+            },
+            "interests": {
+                interest: bool(getByPath(record, janrain_attribute, False))
+                for (interest, janrain_attribute)
+                in config["INTERESTS_OPT_IN_ATTRIBUTES_MAPPING"].items()
+            },
         })
     }
 

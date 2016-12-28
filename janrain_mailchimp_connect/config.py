@@ -28,6 +28,7 @@ ENV_VARS = {
     'JANRAIN_OPT_IN_ATTRIBUTE': '',
 
     'FIELD_MAPPING':{'familyName': "LNAME", "givenName": "FNAME"},
+    'INTERESTS_OPT_IN_ATTRIBUTES_MAPPING':{},
 
     'MC_URI_TEMPLATE':'https://{data_center}.api.mailchimp.com/3.0/',
     'MC_API_KEY': '',
